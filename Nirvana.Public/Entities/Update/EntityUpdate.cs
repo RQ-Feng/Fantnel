@@ -66,8 +66,9 @@ public class EntityUpdate {
     {
         while (true) {
             var count = await CheckUpdate(basePathList);
-            if (count == 0) {
-                return 0;
+            // 负数表示出错（如网络不可用），直接返回，避免无限重试
+            if (count <= 0) {
+                return count;
             }
 
             Thread.Sleep(500);
@@ -212,7 +213,6 @@ public class EntityUpdate {
     {
         Log.Warning("{0}: {1}", Name, Mode);
         Log.Warning("{0}", message);
-        Environment.Exit(1);
         return -1;
     }
 }

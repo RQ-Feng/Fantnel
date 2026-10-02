@@ -91,40 +91,27 @@ public static class InitProgram {
     */
     private static void VersionCheck()
     {
+        // 未获取到服务器信息：不阻塞启动，仅告警
+        // ★ 注意：前面的 logInit 会清屏，所以这条告警必须放在 NelInit1（最后一次清屏之后）才看得见
+        if (InfoManager.FantnelInfo == null) {
+            Log.Warning("无法连接至涅槃服务器，已跳过版本检测与更新检查，程序将以离线模式继续运行。");
+            return;
+        }
+
         // 检查是否为发布版本
         if (!PublicProgram.Release) {
             Log.Error("调试版，已跳过版本检测！");
             return;
         }
 
-        if (InfoManager.FantnelInfo == null) {
-            Log.Error("无法连接至服务器！");
-            Thread.Sleep(6000);
-            Environment.Exit(1);
+        var versions = InfoManager.FantnelInfo.Versions;
+        if (versions == null || versions.Length == 0) {
+            Log.Warning("检测版本失败（服务器未返回版本列表），已跳过版本检测！");
             return;
         }
 
-        if (InfoManager.FantnelInfo.Versions == null) {
-            Log.Error("检测版本失败，无法检查版本！");
-            Thread.Sleep(6000);
-            Environment.Exit(1);
-        }
-
-        var isVersion = false; // 版本 是否存在
-        foreach (var version in InfoManager.FantnelInfo.Versions) {
-            if (version == PublicProgram.Version) {
-                isVersion = true;
-            }
-        }
-
-        if (!isVersion) {
-            Log.Error("该版本已被禁用，请前往 https://npyyds.top/ 查看最新版本！");
-            Thread.Sleep(6000);
-            Environment.Exit(1);
-        }
-
         // 检查是否为最新版本
-        if (InfoManager.FantnelInfo.Versions.Last().Equals(PublicProgram.Version)) {
+        if (versions.Last().Equals(PublicProgram.Version)) {
             return;
         }
 
@@ -171,13 +158,11 @@ public static class InitProgram {
                     return;
                 }
             } catch (Exception e) {
-                Log.Error("连接服务器失败! 错误信息: {0}", e.Message);
+                Log.Warning("连接服务器失败! 错误信息: {0}", e.Message);
             }
         }
 
-        Log.Error("连接服务器失败!");
-        Thread.Sleep(6000);
-        Environment.Exit(1);
+        Log.Warning("连接服务器失败，已跳过服务器信息/版本/更新检查，程序将继续以离线模式运行。");
     }
 
     // 创建服务

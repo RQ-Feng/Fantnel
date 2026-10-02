@@ -23,16 +23,13 @@ public static class UpdateTools {
     private static async Task CheckUpdateAsync(string[] args)
     {
         if (InfoManager.FantnelInfo == null) {
-            Log.Error("无法连接至服务器！");
-            Thread.Sleep(6000);
-            Environment.Exit(1);
+            Log.Warning("无法连接至服务器，已跳过更新检查！");
             return;
         }
 
         if (!PublicProgram.UpdateVersion.Equals(InfoManager.FantnelInfo.UpdateVersions)) {
-            Log.Error("当前版本已被禁用，请前往官网重新下载！");
-            Thread.Sleep(6000);
-            Environment.Exit(1);
+            Log.Warning("更新器版本不匹配（本地 {0}，服务器 {1}），已跳过更新检查！",
+                PublicProgram.UpdateVersion, InfoManager.FantnelInfo.UpdateVersions);
             return;
         }
 

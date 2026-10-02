@@ -26,6 +26,9 @@ public class InMemorySink : ILogEventSink {
     public static void Clear()
     {
         Instance._logs.Clear();
-        Console.Clear();
+        // 输出被重定向（无控制台）时 Console.Clear() 会抛 IOException: 句柄无效，直接跳过
+        if (!Console.IsOutputRedirected) {
+            Console.Clear();
+        }
     }
 }
