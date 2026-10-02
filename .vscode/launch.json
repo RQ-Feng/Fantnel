@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Fantnel 后端（调试）",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-backend",
+      "program": "${workspaceFolder}/Fantnel/bin/Debug/net10.0/Fantnel.dll",
+      "args": [
+        "--update_static_false",
+        "--update_static_system_false"
+      ],
+      "cwd": "${workspaceFolder}/Fantnel/bin/Debug/net10.0",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": "Fantnel 后端（调试，固定端口 13521）",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-backend",
+      "program": "${workspaceFolder}/Fantnel/bin/Debug/net10.0/Fantnel.dll",
+      "args": [
+        "--fantnel_port",
+        "13521",
+        "--update_static_false",
+        "--update_static_system_false"
+      ],
+      "cwd": "${workspaceFolder}/Fantnel/bin/Debug/net10.0",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  ]
+}

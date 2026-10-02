@@ -39,6 +39,13 @@ public class GameProxiesController : ControllerBase {
         return Ok(Code.ToJson(ErrorCode.Success));
     }
 
+    // 代理历史记录（主页「上次代理」）
+    [HttpGet("/api/server/history")]
+    public IActionResult GetProxyHistory()
+    {
+        return Ok(Code.ToJson(ErrorCode.Success, ProxyHistoryManager.GetHistory()));
+    }
+
     [HttpPost("/api/gameproxie/authenticator")]
     public IActionResult LaunchGameProxy([FromQuery] string id, [FromBody] GameProfile gameProfile)
     {

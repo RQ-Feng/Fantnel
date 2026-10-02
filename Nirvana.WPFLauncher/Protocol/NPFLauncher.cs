@@ -269,7 +269,8 @@ public static class NPFLauncher {
         };
         var response = await X19Extensions.Core.HttpWrapper.PostAsync("/authentication-otp", HttpUtil.HttpEncrypt(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(authenticationData, DefaultOptions))));
         var body = await response.Content.ReadAsByteArrayAsync();
-        var entity = JsonSerializer.Deserialize<EntityWPFLauncher<EntityAuthenticationOtp>>(HttpUtil.HttpDecrypt(body));
+        var decrypted = HttpUtil.HttpDecrypt(body);
+        var entity = JsonSafe.DeserializeUtf8<EntityWPFLauncher<EntityAuthenticationOtp>>(decrypted, "/authentication-otp", response);
         if (entity == null) {
             throw new ErrorCodeException(ErrorCode.LoginError);
         }

@@ -27,11 +27,8 @@ public static class Code {
             ErrorCode.ServicesNotInitialized => "Services 服务未初始化",
             ErrorCode.AccountError => "账号错误或异常",
             ErrorCode.PasswordError => "密码错误或异常",
-            ErrorCode.EmailOrPasswordError => "邮箱或密码错误",
             ErrorCode.LoginError => "登录出现未知错误",
-            ErrorCode.LoadAccountError => "识别账号时出现异常",
             ErrorCode.DirectoryCreateError => "创建目录失败",
-            ErrorCode.CaptchaError => "验证码错误",
             ErrorCode.NotFound => "没有找到",
             ErrorCode.IdError => "ID 错误",
             ErrorCode.LogInNot => "没有登录",
@@ -49,9 +46,6 @@ public static class Code {
             ErrorCode.GamePlugin => "该游戏可能不支持插件",
             ErrorCode.MemoryError => "内存不应该这样设置",
             ErrorCode.ParamError => "参数错误",
-            ErrorCode.VerifyFailed => "验证失败",
-            ErrorCode.OnlineStatusExpired => "在线状态已过期",
-            ErrorCode.NoTimes => "没有获取次数，请前往 \"官网\" 进行购买！",
             ErrorCode.NotVersionByLauncher => "无法获取盒子版本",
             _ => "未知错误"
         };

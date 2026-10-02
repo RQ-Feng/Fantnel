@@ -14,12 +14,6 @@ namespace Nirvana.Common;
 
 public class NirvanaConfig {
     private static readonly List<IConfigValue> ConfigValues = [
-        new ConfigValue<bool>(true) {
-            Name = "hideAccount"
-        }, // 隐藏账号
-        new ConfigValue<bool>(true) {
-            Name = "chatEnable"
-        }, // 聊天功能
         new ConfigValue<int>(4096) {
             Name = "gameMemory"
         }, // 游戏内存
@@ -44,19 +38,19 @@ public class NirvanaConfig {
         new ConfigValue<bool>(true) {
             Name = "autoUpdatePlugin"
         }, // 自动更新插件
-        new ConfigValue<string> {
-            Name = "account"
-        }, // 涅槃账号
-        new ConfigValue<string> {
-            Name = "token"
-        }, // 涅槃在线密钥
         new ConfigValue<JsonNode> {
             Name = "netease_device"
         }, // 163Email 设备 ID
         new ConfigValue<string> {
             Name = "netease_unique"
-        } // 163Email 唯一标识
+        }, // 163Email 唯一标识
+        new ConfigValue<string>(string.Empty) {
+            Name = "proxyHistory"
+        } // 代理历史记录（JSON 数组字符串）
     ];
+
+    // 已废弃的配置项（历史遗留，启动时自动清理）
+    private static readonly string[] LegacyKeys = ["account", "token", "hideAccount", "chatEnable"];
 
     // 初始化
     public static void Initialization()
@@ -67,6 +61,12 @@ public class NirvanaConfig {
                 return;
             }
 
+            // 清理历史遗留的账号相关配置
+            var hasLegacy = false;
+            foreach (var legacyKey in LegacyKeys) {
+                hasLegacy |= entity.Remove(legacyKey);
+            }
+
             foreach (var configValue in entity) {
                 try {
                     SetValue(configValue.Key, configValue.Value, false);
@@ -75,6 +75,10 @@ public class NirvanaConfig {
                 } catch (Exception e) {
                     Log.Error("初始化配置 {0} 失败 : {1}", configValue.Key, e.Message);
                 }
+            }
+
+            if (hasLegacy) {
+                File.WriteAllText(PathUtil.ConfigPath, entity.ToJsonString());
             }
         }
     }
@@ -208,6 +212,11 @@ public class NirvanaConfig {
         var jsonObj = new JsonObject();
         // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
         foreach (var obj in ConfigValues) {
+            // 已废弃的账号相关配置不再对外输出
+            if (LegacyKeys.Any(obj.EqualsName)) {
+                continue;
+            }
+
             if (showDefault || !obj.IsDefault()) {
                 obj.ToAdd(jsonObj);
             }
@@ -224,24 +233,6 @@ public class NirvanaConfig {
         }
     }
 
-    // 退出登录
-    public static void Logout()
-    {
-        SetValue("account", string.Empty);
-        SetValue("token", string.Empty);
-        SaveConfig();
-    }
-
-    // 登录检测
-    public static void IsLogin()
-    {
-        var account = GetValue<string>("account");
-        var token = GetValue<string>("token");
-        if (string.IsNullOrEmpty(account) || string.IsNullOrEmpty(token)) {
-            throw new ErrorCodeException(ErrorCode.LogInNot);
-        }
-    }
-
     public static void SetGameMemory(string? value)
     {
         if (string.IsNullOrEmpty(value)) {
@@ -254,12 +245,5 @@ public class NirvanaConfig {
         }
 
         SetValue("gameMemory", gameMemory);
-    }
-
-    public static string GetLoginT()
-    {
-        var account = GetValue<string>("account");
-        var token = GetValue<string>("token");
-        return $"account={account}&online={token}";
     }
 }

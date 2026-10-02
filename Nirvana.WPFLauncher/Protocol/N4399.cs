@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Nirvana.WPFLauncher.Entities.Pc4399;
+using Nirvana.WPFLauncher.Utils;
 using QueryBuilder = Nirvana.WPFLauncher.Utils.QueryBuilder;
 
 namespace Nirvana.WPFLauncher.Protocol;
@@ -150,7 +151,8 @@ public static class N4399 {
         var response = await client.GetAsync($"https://microgame.5054399.net/v2/service/sdk/info?{queryBuilder}");
 
         var responseText = await response.Content.ReadAsStringAsync();
-        var uniAuthData = JsonSerializer.Deserialize<EntityC4399UniAuth>(responseText) ?? throw new Exception("解析统一认证数据失败");
+        var uniAuthData = JsonSafe.Deserialize<EntityC4399UniAuth>(responseText, "4399 统一认证", response)
+            ?? throw new Exception($"解析统一认证数据失败：{JsonSafe.Preview(responseText)}");
 
         return new QueryBuilder(uniAuthData.Data.SdkLoginData);
     }

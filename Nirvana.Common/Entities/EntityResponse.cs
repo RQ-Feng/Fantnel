@@ -26,18 +26,6 @@ public class EntityInfo {
     [JsonInclude]
     public string[]? Versions { get; init; }
 
-    [JsonPropertyName("ad1")]
-    [JsonInclude]
-    public Advertisement? Ad1 { get; init; }
-
-    [JsonPropertyName("ad2")]
-    [JsonInclude]
-    public Advertisement? Ad2 { get; init; }
-
-    [JsonPropertyName("ad3")]
-    [JsonInclude]
-    public Advertisement? Ad3 { get; init; }
-
     [JsonPropertyName("crcSalt")]
     [JsonInclude]
     public string? CrcSalt { get; init; }
@@ -45,14 +33,4 @@ public class EntityInfo {
     [JsonPropertyName("shopUrl")]
     [JsonInclude]
     public string? ShopUrl { get; init; }
-}
-
-public class Advertisement {
-    [JsonPropertyName("name")]
-    [JsonInclude]
-    public string? Name { get; set; }
-
-    [JsonPropertyName("text")]
-    [JsonInclude]
-    public string? Text { get; set; }
 }

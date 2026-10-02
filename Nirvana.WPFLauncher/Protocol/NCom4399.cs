@@ -23,9 +23,9 @@ public static class NCom4399 {
     {
         var oauthResp = await Client.GetAsync("https://m.4399api.com/openapi/oauth-callback.html?gamekey=44770&game_key=115716");
         var oauthText = await oauthResp.Content.ReadAsStringAsync();
-        var oauthCallback = JsonSerializer.Deserialize<Entity4399OAuthCallback>(oauthText);
+        var oauthCallback = JsonSafe.Deserialize<Entity4399OAuthCallback>(oauthText, "4399 OAuth 回调", oauthResp);
         if (oauthCallback == null) {
-            throw new Exception("Failed to deserialize: " + oauthText);
+            throw new Exception("4399 OAuth 回调解析为空: " + JsonSafe.Preview(oauthText));
         }
 
         var queryParams = QueryBuilder.FromParameters(oauthCallback.Result);
@@ -51,10 +51,10 @@ public static class NCom4399 {
             throw new Exception(errText);
         }
 
-        var userInfoResponse = JsonSerializer.Deserialize<Entity4399UserInfoResponse>(loginText);
+        var userInfoResponse = JsonSafe.Deserialize<Entity4399UserInfoResponse>(loginText, "4399 登录响应", loginResponse);
 
         if (userInfoResponse == null) {
-            throw new Exception("Failed to deserialize: " + loginText);
+            throw new Exception("4399 登录响应解析为空: " + JsonSafe.Preview(loginText));
         }
 
         if (userInfoResponse.Code != "100") {
@@ -74,6 +74,11 @@ public static class NCom4399 {
 
     private static string ExtractErrorTip(string html)
     {
+        // 既不是 HTML 也不是 JSON：说明拿到的是纯文本错误信息，直接返回（与 N4399 的实现保持一致）
+        if (!html.Contains("<html>") && !JsonSafe.LooksLikeJson(html)) {
+            return html.Trim();
+        }
+
         const string startMarker = "login_err_msg\">";
         const string endMarker = "</p>";
 

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Nirvana.WPFLauncher.Entities.Pc4399;
 using Nirvana.WPFLauncher.Http;
+using Nirvana.WPFLauncher.Utils;
 
 namespace Nirvana.WPFLauncher.Protocol;
 
@@ -40,19 +41,21 @@ public class MgbSdk(string gameId) : IDisposable {
     {
         var httpResponseMessage = await _sdk.PostAsync($"/{gameId}/sdk/uni_sauth", cookie);
         var responseText = await httpResponseMessage.Content.ReadAsStringAsync();
-        var dictionary = JsonSerializer.Deserialize<Dictionary<string, object>>(responseText);
+        var dictionary = JsonSafe.Deserialize<Dictionary<string, object>>(responseText, $"MGB SDK /{gameId}/sdk/uni_sauth", httpResponseMessage);
         if (dictionary == null) {
-            throw new HttpRequestException("Response is empty");
+            throw new HttpRequestException($"MGB SDK 返回内容为空：{JsonSafe.Preview(responseText)}");
         }
 
-        if ("200".Equals(dictionary["code"].ToString())) {
+        if (dictionary.TryGetValue("code", out var code) && "200".Equals(code?.ToString())) {
             return;
         }
 
         if (dictionary.TryGetValue("msg", out var msg)) {
-            throw new HttpRequestException(msg.ToString());
+            throw new HttpRequestException(msg?.ToString() ?? "MGB SDK 登录失败");
         }
 
-        throw new HttpRequestException(dictionary["status"].ToString());
+        throw new HttpRequestException(dictionary.TryGetValue("status", out var status)
+            ? status?.ToString() ?? "MGB SDK 登录失败"
+            : $"MGB SDK 未知响应：{JsonSafe.Preview(responseText)}");
     }
 }

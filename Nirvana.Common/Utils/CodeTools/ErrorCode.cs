@@ -9,11 +9,8 @@ public enum ErrorCode {
     ServicesNotInitialized = 5,
     AccountError = 6,
     PasswordError = 7,
-    EmailOrPasswordError = 8,
     LoginError = 9,
-    LoadAccountError = 10,
     DirectoryCreateError = 11,
-    CaptchaError = 12,
     NotFound = 13,
     IdError = 14,
     LogInNot = 15,
@@ -31,8 +28,5 @@ public enum ErrorCode {
     GamePlugin = 27,
     MemoryError = 28,
     ParamError = 29,
-    VerifyFailed = 30,
-    OnlineStatusExpired = 31,
-    NoTimes = 32,
     NotVersionByLauncher = 33
 }

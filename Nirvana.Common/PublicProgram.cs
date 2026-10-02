@@ -7,7 +7,7 @@ public static class PublicProgram {
     public const string UpdateVersion = "1.0.0";
     
     // Fantnel 版本
-    public const string Version = "1.7.0";
+    public const string Version = "1.8.0";
     public const int VersionId = 7;
 
     // 是最新版本

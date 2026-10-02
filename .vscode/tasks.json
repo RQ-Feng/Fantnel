@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-backend",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/Fantnel.slnx",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "web-build-deploy",
+      "type": "shell",
+      "command": "npm install; npm run build; $dst='${workspaceFolder}/Fantnel/bin/Debug/net10.0/resources/static'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Remove-Item \"$dst/assets\" -Recurse -Force -ErrorAction SilentlyContinue; robocopy dist $dst /E /NFL /NDL /NJH /NJS | Out-Null",
+      "options": {
+        "cwd": "${workspaceFolder}/web"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "web-dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/web"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

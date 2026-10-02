@@ -417,44 +417,6 @@ public static class AccountMessage {
         return response?.Data ?? throw new ErrorCodeException(ErrorCode.Failure);
     }
 
-    public static async Task RandomAccount(EntityGeeTest captcha)
-    {
-        var randomAccount = await X19Extensions.Nirvana.ApiAsync<string>("/api/nac4399?mode=get&" + NirvanaConfig.GetLoginT() + "&" + captcha.Get());
-        if (randomAccount == null) {
-            throw new ErrorCodeException(ErrorCode.Failure);
-        }
-
-        var entityResponse = JsonSerializer.Deserialize<EntityResponseBase>(randomAccount);
-        if (entityResponse == null) {
-            throw new ErrorCodeException(ErrorCode.Failure);
-        }
-
-        switch (entityResponse.Code) {
-            // 账号过期
-            case 22:
-                NirvanaConfig.Logout();
-                throw new ErrorCodeException(ErrorCode.OnlineStatusExpired);
-            // 没有次数
-            case 42:
-                throw new ErrorCodeException(ErrorCode.NoTimes);
-        }
-
-        if (entityResponse.Code != 1) {
-            throw new ErrorCodeException(ErrorCode.Failure, entityResponse.Message);
-        }
-
-        var account = JsonSerializer.Deserialize<EntityAccount>(randomAccount);
-        if (account == null) {
-            throw new ErrorCodeException(ErrorCode.Failure, entityResponse.Message);
-        }
-
-        account.Type = "4399com";
-        account.Name = GetSuffix("Nac");
-        SaveAccount(account);
-
-        AutoLogin1(account);
-    }
-
     private static string GetSuffix(string prefix)
     {
         var date = DateTimeOffset.Now;

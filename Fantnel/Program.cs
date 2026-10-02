@@ -49,10 +49,15 @@ public static class Program {
 
         var app = builder.Build();
 
-        // 没有配置时，默认监听 13521 端口
-        if (app.Urls.Count == 0) {
-            // 监听未被占用的端口
-            app.Urls.Add("http://0.0.0.0:" + Tools.GetUnusedPort(RestartTools.Get("fantnel_port", args, 13521)));
+        // 端口优先级：命令行 --fantnel_port > 环境/启动配置(ASPNETCORE_URLS) > 默认 13521
+        // 注意 dotnet run 会由 launchSettings 设置 ASPNETCORE_URLS，显式参数应当覆盖它
+        var fantnelPort = RestartTools.Get("fantnel_port", args, 0);
+        if (fantnelPort > 0) {
+            app.Urls.Clear();
+            app.Urls.Add("http://0.0.0.0:" + Tools.GetUnusedPort(fantnelPort));
+        } else if (app.Urls.Count == 0) {
+            // 没有配置时，默认监听 13521 端口（监听未被占用的端口）
+            app.Urls.Add("http://0.0.0.0:" + Tools.GetUnusedPort(13521));
         }
 
         // 配置 HTTP 请求管道。
@@ -65,13 +70,16 @@ public static class Program {
         // 获取运行目录路径
         var resourcesPath = Path.Combine(PathUtil.WebSitePath);
 
+        // 确保 resources/static 存在。UseStaticFiles 的注册只在启动时发生一次，
+        // 若此刻目录缺失，之后即使补上文件也不会被服务（请求全部落到 fallback，
+        // 而 fallback 只返回 index.html，JS/CSS 会拿到空响应 → 整站白屏且无报错）。
+        Directory.CreateDirectory(resourcesPath);
+
         // 启用静态文件服务，从运行目录的 resources/static 目录提供文件
-        if (Directory.Exists(resourcesPath)) {
-            app.UseStaticFiles(new StaticFileOptions {
-                FileProvider = new PhysicalFileProvider(resourcesPath),
-                RequestPath = ""
-            });
-        }
+        app.UseStaticFiles(new StaticFileOptions {
+            FileProvider = new PhysicalFileProvider(resourcesPath),
+            RequestPath = ""
+        });
 
         app.MapControllers();
 

@@ -48,7 +48,7 @@ public class CHandshake : BPacket {
             return true;
         }
 
-        connection.ProtocolVersion = (EnumProtocolVersion)_packetVersion;
+        connection.ProtocolVersion = _packetVersion.ToProtocolVersion();
         connection.State = (EnumConnectionState)_nextState;
         _serverPort = (ushort)connection.Config.ForwardPort;
         var serverAddress = connection.ProtocolVersion switch {
@@ -57,7 +57,9 @@ public class CHandshake : BPacket {
             <= EnumProtocolVersion.V1122 => connection.Config.ForwardAddress + "\0FML\0",
             _ => connection.Config.ForwardAddress + "\0FML2\0"
         };
-        Log.Information("Protocol {0}, Next state: {1}, Address: {2} > {3}", connection.ProtocolVersion, connection.State, _serverAddress, serverAddress.Replace("\0", "|"));
+        // 把握手里的原始协议号也打出来：映射结果（如 772 -> V1210）直接可核对，
+        // 按版本注册的包（LoginAcknowledged / FinishConfiguration 等）能否匹配全看它。
+        Log.Information("Protocol {0}({1}), Next state: {2}, Address: {3} > {4}", _packetVersion, connection.ProtocolVersion, connection.State, _serverAddress, serverAddress.Replace("\0", "|"));
         _serverAddress = serverAddress;
         return false;
     }

@@ -38,21 +38,6 @@
 
       </div>
 
-      <!-- IRC 配置卡片 -->
-      <div class="settings-card">
-        <h2 class="card-title">Chat | IRC</h2>
-
-        <div class="form-group">
-          <div class="form-options">
-            <div class="remember-me">
-              <input v-model="ircEnabled" class="form-checkbox" id="ircEnabled" type="checkbox">
-              <label class="form-checkbox-label" for="ircEnabled">是否开启</label>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
       <!-- 启动配置卡片 -->
       <div class="settings-card">
         <h2 class="card-title">启动配置</h2>
@@ -86,8 +71,8 @@
         </div>
       </div>
 
-      <!-- 其它配置卡片 -->
-      <div class="settings-card">
+      <!-- 其它配置卡片（仅剩「自动更新插件」，随插件功能一起隐藏） -->
+      <div v-if="ENABLE_PLUGIN_FEATURES" class="settings-card">
         <h2 class="card-title">其它配置</h2>
 
         <div class="form-group">
@@ -108,25 +93,18 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { Message } from '../utils/message.js'
-import { chatEnable, jvmArgs, gameArgs, gameMemory as setGameMemory, getSettings, autoLoginGame, autoLoginGame163Email, setUseJavaW, autoLoginGameCookie as setAutoLoginGameCookie, autoUpdatePlugin as setAutoUpdatePlugin } from '../utils/Tools.js'
+import { jvmArgs, gameArgs, gameMemory as setGameMemory, getSettings, autoLoginGame, autoLoginGame163Email, setUseJavaW, autoLoginGameCookie as setAutoLoginGameCookie, autoUpdatePlugin as setAutoUpdatePlugin } from '../utils/Tools.js'
+import { ENABLE_PLUGIN_FEATURES } from '../config/features.js'
 
 const vmArgs = ref('')
 const gameArguments = ref('')
 const gameMemory = ref('')
 const useJavaW = ref(false)
-const ircEnabled = ref(false)
 const isAutoLoginGame = ref(false)
 const isAutoLoginGame163Email = ref(false)
 const autoLoginGameCookie = ref(false)
 const isInitialLoading = ref(true)
 const autoUpdatePlugin = ref(false)
-
-// 监听 IRC 开启状态变化
-watch(ircEnabled, (newValue) => {
-  if (!isInitialLoading.value) {
-    handleChatEnable(newValue)
-  }
-})
 
 // 监听虚拟机参数变化
 watch(vmArgs, (newValue) => {
@@ -199,7 +177,6 @@ const loadSettings = async () => {
       gameArguments.value = data.data.gameArgs || ''
       gameMemory.value = data.data.gameMemory || '4096'
       useJavaW.value = data.data.useJavaW || false
-      ircEnabled.value = data.data.chatEnable || false
       isAutoLoginGame.value = data.data.autoLoginGame || false
       autoLoginGameCookie.value = data.data.autoLoginGameCookie || false
       isAutoLoginGame163Email.value = data.data.autoLoginGame163Email || false
@@ -214,19 +191,6 @@ const loadSettings = async () => {
     await nextTick()
     // 加载完成后设置为 false，允许后续的保存操作
     isInitialLoading.value = false
-  }
-}
-
-const handleChatEnable = async (value) => {
-  try {
-    const data = await chatEnable(value ? "true" : "false")
-    if (data.code === 1) {
-      Message.success(data.msg || '设置成功')
-    } else {
-      Message.warning(data.msg || '设置失败')
-    }
-  } catch (error) {
-    Message.error('设置失败，请检查网络连接')
   }
 }
 

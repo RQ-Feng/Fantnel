@@ -1,20 +1,12 @@
 <script setup>
-import { ref, provide, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { getThemeName, setThemeName, getNirvanaAccount, initWindowMode, minimizeWindow, closeWindow, sendMessage } from './utils/Tools'
+import { ref, provide, onMounted } from 'vue'
+import { getThemeName, setThemeName, initWindowMode, minimizeWindow, closeWindow, sendMessage } from './utils/Tools'
+import { ENABLE_PLUGIN_FEATURES } from './config/features'
 
-const route = useRoute()
-const router = useRouter()
 const theme = ref('dark')
-const account = ref('')
 const showCloseIcon = ref(false)
 const showMinimizeIcon = ref(false)
 const showWindowControls = ref(false)
-
-// 计算是否显示导航栏
-const showNavbar = computed(() => {
-  return route.path !== '/login-socket'
-})
 
 // Initialize theme from API
 onMounted(async () => {
@@ -22,9 +14,6 @@ onMounted(async () => {
 
   const themeName = await getThemeName().then(res => res.data);
   theme.value = themeName === 'default' ? 'dark' : themeName
-  // 获取涅槃账号信息
-  const accountInfo = await getNirvanaAccount().then(res => res.data);
-  account.value = accountInfo.account
   // 初始化消息接收
   initMessageReceiver()
   // 初始化窗口模式
@@ -82,22 +71,6 @@ const initWindow = async () => {
   initDragZone()
 
   showWindowControls.value = true // 窗口控制按钮
-
-  try {
-    // 加载涅槃账号信息
-    const response = await getNirvanaAccount()
-    if (response.code === 1) {
-      if (response.data.days < 1) {
-        // 跳转到登录页面
-        router.push('/login-socket')
-      }
-    } else {
-      router.push('/login-socket')
-    }
-  } catch (error) {
-    console.error('Failed to load nirvana account:', error)
-  }
-
 }
 
 const initDragZone = () => {
@@ -134,7 +107,7 @@ const initDragZone = () => {
 <template>
   <div class="app" :class="theme">
     <!-- 窗口控制按钮 -->
-    <div class="container" :class="{ 'full-width': !showNavbar }">
+    <div class="container">
       <div class="window-controls" v-if="showWindowControls">
         <button class="window-btn minimize-btn" @click="handleMinimize" @mouseenter="showMinimizeIcon = true"
           @mouseleave="showMinimizeIcon = false">
@@ -146,11 +119,9 @@ const initDragZone = () => {
         </button>
       </div>
       <!-- 左侧导航栏 -->
-      <nav class="sidebar" v-if="showNavbar">
+      <nav class="sidebar">
         <div class="logo">
-          <h2 class="divider">Fantnel</h2>
-          <router-link to="/user" v-if="account">{{ account }}</router-link>
-          <router-link to="/login" v-else>点我登录</router-link>
+          <h2>Fantnel</h2>
         </div>
         <ul class="nav-list">
           <li>
@@ -160,7 +131,7 @@ const initDragZone = () => {
             <router-link to="/game-accounts" active-class="active">游戏账号</router-link>
           </li>
           <li>
-            <router-link to="/servers" active-class="active">网络器</router-link>
+            <router-link to="/servers" active-class="active">网络游戏</router-link>
           </li>
           <li>
             <router-link to="/game-rental" active-class="active">租赁服</router-link>
@@ -168,12 +139,15 @@ const initDragZone = () => {
           <li>
             <router-link to="/skins" active-class="active" class="divider">我的皮肤</router-link>
           </li>
-          <li>
-            <router-link to="/plugins" active-class="active">插件管理</router-link>
-          </li>
-          <li>
-            <router-link to="/plugin-store" active-class="active" class="divider">插件商城</router-link>
-          </li>
+          <!-- 插件相关入口：远端插件接口已下线，由 ENABLE_PLUGIN_FEATURES 统一控制 -->
+          <template v-if="ENABLE_PLUGIN_FEATURES">
+            <li>
+              <router-link to="/plugins" active-class="active">插件管理</router-link>
+            </li>
+            <li>
+              <router-link to="/plugin-store" active-class="active" class="divider">插件商城</router-link>
+            </li>
+          </template>
           <li>
             <router-link to="/proxy-manager" active-class="active">代理管理</router-link>
           </li>
@@ -181,7 +155,7 @@ const initDragZone = () => {
             <router-link to="/game-manager" active-class="active" class="divider">游戏管理</router-link>
           </li>
           <li>
-            <router-link to="/settings" active-class="active">系统设置</router-link>
+            <router-link to="/settings" active-class="active">设置</router-link>
           </li>
           <li>
             <router-link to="/logs" active-class="active">日志信息</router-link>
@@ -204,7 +178,7 @@ const initDragZone = () => {
     </div>
 
     <!-- 页脚 -->
-    <div class="footer" v-if="showNavbar">
+    <div class="footer">
       <div class="footer-content">
         <p>© 涅槃科技 2020/11/2 - 至今. 保留所有权利.</p>
         <!-- <p>备案号: 123456</p> -->

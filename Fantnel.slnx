@@ -1,6 +1,5 @@
 <Solution>
     <Project Path="Fantnel/Fantnel.csproj"/>
-    <!--    <Project Path="Nirvana.Chat/Nirvana.Chat.csproj"/>-->
     <Project Path="Nirvana.Cipher/Nirvana.Cipher.csproj"/>
     <Project Path="Nirvana.Common/Nirvana.Common.csproj"/>
     <Project Path="Nirvana.Development/Nirvana.Development.csproj"/>

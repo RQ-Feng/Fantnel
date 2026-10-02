@@ -87,50 +87,79 @@ public class GameConnection : BGameConnection {
         _workerGroup?.ShutdownGracefullyAsync();
     }
 
+    // 已知包的帧体解析失败（帧本身已被完整切分，不会造成流错位）
+    private sealed class PacketParseException(int id, Exception inner)
+        : Exception($"解析包体失败, Id: {id}", inner);
+
     private void HandlePacketReceived(IByteBuffer buffer, EnumPacketDirection direction, Action<object> onRedirect)
     {
         buffer.MarkReaderIndex();
         var id = buffer.ReadVarIntFromBuffer();
 
-        var packet = PacketManager.TriggerEvent(iPacket => {
-            try {
-                // Log.Information("Handle[{0}.{1}]: {2}[{3}]", direction, State, iPacket.GetType().Name, id);
-                iPacket.PacketId = id;
-                iPacket.ProtocolVersion = ProtocolVersion;
-                iPacket.ReadFromBuffer(this, buffer);
-            } catch (Exception exception) {
-                Log.Error(exception, "Cannot read packet from buffer, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
-                throw;
-            }
-
-            try {
-                if (iPacket.HandlePacket(this)) {
-                    return true;
+        bool handled;
+        try {
+            handled = PacketManager.TriggerEvent(iPacket => {
+                try {
+                    // Log.Information("Handle[{0}.{1}]: {2}[{3}]", direction, State, iPacket.GetType().Name, id);
+                    iPacket.PacketId = id;
+                    iPacket.ProtocolVersion = ProtocolVersion;
+                    iPacket.ReadFromBuffer(this, buffer);
+                } catch (Exception exception) {
+                    Log.Error(exception, "Cannot read packet from buffer, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
+                    throw new PacketParseException(id, exception);
                 }
-            } catch (Exception exception) {
-                Log.Error(exception, "Cannot handle packet, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
-                throw;
-            }
 
-            try {
-                buffer.Clear();
-                buffer.WriteVarInt(id);
-                iPacket.WriteToBuffer(buffer);
-                buffer.MarkReaderIndex();
-                buffer.ReadVarIntFromBuffer();
-            } catch (Exception exception) {
-                Log.Error(exception, "Cannot write packet to buffer, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
-                throw;
-            }
+                try {
+                    if (iPacket.HandlePacket(this)) {
+                        return true;
+                    }
+                } catch (Exception exception) {
+                    Log.Error(exception, "Cannot handle packet, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
+                    throw;
+                }
 
-            return false;
-        }, State, direction, id, ProtocolVersion, Config.GameId);
+                try {
+                    buffer.Clear();
+                    buffer.WriteVarInt(id);
+                    iPacket.WriteToBuffer(buffer);
+                    buffer.MarkReaderIndex();
+                    buffer.ReadVarIntFromBuffer();
+                } catch (Exception exception) {
+                    Log.Error(exception, "Cannot write packet to buffer, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
+                    throw;
+                }
 
-        if (packet == null) {
+                return false;
+            }, State, direction, id, ProtocolVersion, Config.GameId) != null;
+        } catch (PacketParseException) {
+            // 一个畸形/不认识的包不应直接打断整条连接：
+            // 回滚 readerIndex 后原样透传给对端，同时把帧内容打出来便于定位。
+            buffer.ResetReaderIndex();
+            Log.Warning("包体解析失败，已原样透传: direction={0}, Id={1}, ProtocolVersion={2}, 帧长={3}, 内容={4}",
+                direction, id, ProtocolVersion, buffer.ReadableBytes, HexDump(buffer));
+            onRedirect(buffer);
+            return;
+        }
+
+        if (!handled) {
             // Log.Information("Handle[{0}.{1}]: {2}", direction, State, id);
             buffer.ResetReaderIndex();
             onRedirect(buffer);
         }
+    }
+
+    // 打印帧头部十六进制：用于区分「加密/分帧错位（字节随机）」和「包体真的缺字段（字节规整）」
+    private static string HexDump(IByteBuffer buffer)
+    {
+        var length = Math.Min(buffer.ReadableBytes, 64);
+        if (length <= 0) {
+            return "(空帧)";
+        }
+
+        var bytes = new byte[length];
+        buffer.GetBytes(buffer.ReaderIndex, bytes, 0, length);
+        var text = Convert.ToHexString(bytes);
+        return buffer.ReadableBytes > length ? $"{text} ...(共{buffer.ReadableBytes}字节)" : text;
     }
 
     public static void EnableCompression(IChannel channel, int threshold)

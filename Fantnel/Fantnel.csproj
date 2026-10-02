@@ -18,4 +18,22 @@
         <ProjectReference Include="..\Nirvana.Public\Nirvana.Public.csproj"/>
     </ItemGroup>
 
+    <!--
+      可选：编译时一并构建前端（web/）并部署到 resources/static
+        用法: dotnet build Fantnel/Fantnel.csproj -p:BuildWebUi=true
+        说明: 需要 Node.js；未安装时仅告警，不中断编译
+
+      注意: 这里刻意用 robocopy(Exec) 而不是 <Copy> 任务。
+        <Copy> 会把目标文件登记进 FileWrites -> obj/.../*.FileListAbsolute.txt，
+        于是之后任何一次 Clean/Rebuild 都会把 resources/static 删掉；
+        而 Program.cs 的 UseStaticFiles 只在启动时注册一次，目录一缺就整站白屏
+        （404 fallback 返回空 index.html，浏览器无任何报错）。robocopy 不参与登记。
+    -->
+    <Target Name="BuildWebUi" AfterTargets="Build" Condition="'$(BuildWebUi)' == 'true'">
+        <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)/../web" ContinueOnError="true"/>
+        <!-- robocopy 退出码 0-7 表示成功，>=8 才是失败；IgnoreExitCode 避免把成功当失败 -->
+        <Exec Command="robocopy &quot;$(MSBuildProjectDirectory)\..\web\dist&quot; &quot;$(OutDir)resources\static&quot; /E /NFL /NDL /NJH /NJS"
+              IgnoreExitCode="true" ContinueOnError="true"/>
+    </Target>
+
 </Project>

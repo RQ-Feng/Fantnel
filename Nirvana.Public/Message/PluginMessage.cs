@@ -28,7 +28,6 @@ public static class PluginMessage {
         try {
             PlugInstoreMessage.AutoUpdateCheck(); // 自动更新插件
             PluginManager.LoadPlugins(); // 加载插件
-            // ChatPluginMain.Initialize(); // 初始化 N聊天插件
         } catch (Exception e) {
             Log.Error("应用初始化失败：{0}", e);
         }

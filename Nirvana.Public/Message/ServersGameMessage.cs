@@ -16,6 +16,15 @@ public static class ServersGameMessage {
     // 服务器列表[普通信息] - 缓存
     public static readonly List<EntityNetGameItem> ServerList = [];
 
+    // 并发补齐「图片/版本」时的**全局**并发上限
+    // 每一项都要发一次远端详情请求（NPFLauncher.GetNetGameDetailByIdAsync）。
+    // 实测：并发开大（6 × 3 个缓存线程）远端会直接返回「服务器繁忙」，20 个一起失败。
+    // 原来每个调用点是串行、只有 3 个缓存线程并行 ≈ 全局 3 并发 —— 保持同一量级才稳。
+    private const int ImageRepairConcurrency = 3;
+
+    // 全局并发闸门：所有调用点（含后台缓存线程）共用，避免叠加出高并发
+    private static readonly SemaphoreSlim ImageRepairGate = new(ImageRepairConcurrency, ImageRepairConcurrency);
+
     /**
      * 获取服务器列表[普通信息]
      * @param offset 偏移量
@@ -43,15 +52,23 @@ public static class ServersGameMessage {
                 }
 
                 // 修复没有图片的游戏项
-                foreach (var item in list) {
-                    // 没有图片
-                    if (item.TitleImageSafe()) {
-                        continue;
-                    }
-
-                    // 从 详情页 获取图片
-                    await GetFirstImageAndVerByCache(item);
-                }
+                // 原来是 foreach + await 串行：一批 15 个就要等 15 次远端往返。
+                // 改成有界并发（全局最多 3 个在途），总耗时≈串行的 1/3。
+                // 每个 item 是不同对象，GetCacheImageUrl 内部也有锁，并发安全。
+                await Parallel.ForEachAsync(
+                    list.Where(item => !item.TitleImageSafe()),
+                    new ParallelOptions { MaxDegreeOfParallelism = ImageRepairConcurrency },
+                    async (item, _) => {
+                        await ImageRepairGate.WaitAsync();
+                        try {
+                            await GetFirstImageAndVerByCache(item);
+                        } catch (Exception e) {
+                            // 单项失败不要影响整批（原来抛出去会让整个列表请求失败）
+                            Log.Warning("获取服务器图片/版本失败: {0} - {1}", item.EntityId, e.Message);
+                        } finally {
+                            ImageRepairGate.Release();
+                        }
+                    });
 
                 return list;
             }

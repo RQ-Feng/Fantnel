@@ -151,6 +151,11 @@ export async function closeProxyServer(id) {
     return await axios.get(`/api/server/close?id=${id}`).then(res => res.data);
 }
 
+// 代理历史记录（主页「上次代理」）
+export async function getProxyHistory() {
+    return await axios.get(`/api/server/history`).then(res => res.data);
+}
+
 // 获取游戏皮肤列表
 export async function getGameSkinList(offset = 0, pageSize = 10) {
     return await axios.get(`/api/gameskin/get?offset=${offset}&pageSize=${pageSize}`).then(res => res.data);
@@ -249,31 +254,6 @@ export async function getServerPlugins(id = "", version = "") {
     return await axios.get(`/api/plugins/dependence?id=${id}&version=${version}`).then(res => res.data);
 }
 
-// 登录涅槃账号
-export async function loginNirvana(account, password) {
-    return await axios.get(`/api/nirvana/login?account=${account}&password=${password}`).then(res => res.data);
-}
-
-// 退出涅槃账号
-export async function logoutNirvana() {
-    return await axios.get(`/api/nirvana/logout`).then(res => res.data);
-}
-
-// 获取涅槃账号信息
-export async function getNirvanaAccount() {
-    return await axios.get(`/api/nirvana/account/get`).then(res => res.data);
-}
-
-// 隐藏账号
-export async function hideNirvanaAccount(value = "true") {
-    return await axios.get(`/api/nirvana/set?mode=hideAccount&value=${value}`).then(res => res.data);
-}
-
-// 聊天启用
-export async function chatEnable(value = "true") {
-    return await axios.get(`/api/nirvana/set?mode=chatEnable&value=${value}`).then(res => res.data);
-}
-
 // 游戏内存
 export async function gameMemory(value = "4096") {
     return await axios.get(`/api/nirvana/set?mode=gameMemory&value=${value}`).then(res => res.data);
@@ -314,11 +294,6 @@ export async function setUseJavaW(value = "true") {
     return await axios.get(`/api/nirvana/set?mode=useJavaW&value=${value}`).then(res => res.data);
 }
 
-// 切换主题
-export async function setThemeSwitch(theme) {
-    return await axios.post(`/api/theme/switch`, theme).then(res => res.data);
-}
-
 // 自动更新插件
 export async function autoUpdatePlugin(value = "true") {
     return await axios.get(`/api/nirvana/set?mode=autoUpdatePlugin&value=${value}`).then(res => res.data);
@@ -357,8 +332,4 @@ export const sendMessage = (action, data = "") => {
   if (window.external && window.external.sendMessage) {
     window.external.sendMessage(message);
   }
-}
-
-export async function randomGameAccount (data){
-    return await axios.post('/api/gameaccount/random', data).then(res => res.data);
 }

@@ -1,119 +1,267 @@
 <template>
   <div class="home">
-    <h1>欢迎使用 Fantnel 管理系统</h1>
-
-    <div class="intro">
-      <p>Fantnel 是一个功能强大的游戏服务器管理系统，提供账号管理、服务器管理、插件管理等多种功能。</p>
+    <div class="home-header">
+      <h1>欢迎使用 Fantnel 管理系统</h1>
+      <button class="refresh-btn" :disabled="loading" @click="loadAll">
+        {{ loading ? '刷新中...' : '刷新' }}
+      </button>
     </div>
+    <p class="intro-line">账号、服务器与皮肤的一站式管理面板。</p>
 
-    <div class="features">
+    <div class="card-grid">
+      <!-- 当前游戏账号 -->
+      <section class="card">
+        <header class="card-title">
+          <h2>当前游戏账号</h2>
+          <router-link to="/game-accounts" class="card-link">管理</router-link>
+        </header>
 
-      <!-- 广告位 -->
-      <div class="ads" v-if="adData && (adData.ad1 || adData.ad2 || adData.ad3)">
-        <div class="ad-card" v-if="adData && adData.ad1">
-          <h3>{{ adData.ad1.name || '广告位 1' }}</h3>
-          <p>{{ adData.ad1.text || '这里可以放置广告内容，展示您的产品或服务。' }}</p>
+        <div v-if="currentAccount" class="account-body">
+          <p class="account-name">{{ currentAccount.name || currentAccount.account || '未命名账号' }}</p>
+          <ul class="kv">
+            <li><span>类型</span><b>{{ typeText(currentAccount.type) }}</b></li>
+            <li><span>账号</span><b>{{ currentAccount.account || '—' }}</b></li>
+            <li><span>用户 ID</span><b>{{ currentAccount.userId || '—' }}</b></li>
+            <li><span>状态</span><b class="tag-ok">已登录</b></li>
+          </ul>
         </div>
-        <div class="ad-card" v-if="adData && adData.ad2">
-          <h3>{{ adData.ad2.name || '广告位 2' }}</h3>
-          <p>{{ adData.ad2.text || '这里可以放置广告内容，展示您的产品或服务。' }}</p>
-        </div>
-        <div class="ad-card" v-if="adData && adData.ad3">
-          <h3>{{ adData.ad3.name || '广告位 3' }}</h3>
-          <p>{{ adData.ad3.text || '这里可以放置广告内容，展示您的产品或服务。' }}</p>
-        </div>
-      </div>
 
-      <!-- 拖拽区域 -->
-      <div class="drag-drop-area" @dragover.prevent @drop.prevent="handleFileDrop">
-        <div class="drag-drop-content">
-          <p class="drag-drop-text">拖拽 主题 文件到此处</p>
-          <p class="drag-drop-subtext">或点击选择文件</p>
-          <a href="http://npyyds.top/fantnel/theme" target="_blank">
-            <p class="drag-drop-subtext">下载主题，请前往 <b>涅槃科技</b> 下载</p>
-          </a>
-          <input type="file" accept=".fant.json" class="hidden" ref="fileInput" @change="handleFileSelect">
-          <button class="drag-drop-button" @click="$refs.fileInput.click()">
-            选择 主题 文件
+        <div v-else class="account-empty">
+          <p class="empty-title">当前没有已登录的游戏账号</p>
+          <p class="empty-tip">
+            <template v-if="accounts.length">共 {{ accounts.length }} 个账号，但都还没登录。</template>
+            <template v-else>还没有添加任何账号。</template>
+          </p>
+          <router-link to="/game-accounts" class="btn-primary">去游戏账号页</router-link>
+        </div>
+
+        <div v-if="switchableAccounts.length" class="quick-switch">
+          <p class="quick-switch-title">切换优先账号</p>
+          <div class="chip-list">
+            <button
+              v-for="acc in switchableAccounts"
+              :key="acc.id"
+              class="chip"
+              :class="{ active: currentAccount && acc.id === currentAccount.id }"
+              :disabled="!!currentAccount && acc.id === currentAccount.id"
+              @click="askSwitch(acc)">
+              {{ acc.name || acc.account }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 运行状态 -->
+      <section class="card">
+        <header class="card-title">
+          <h2>运行状态</h2>
+        </header>
+        <ul class="stat-list">
+          <li><span>账号</span><b>{{ availableAccounts.length }} / {{ accounts.length }}</b><em>已登录 / 总数</em></li>
+          <li><span>白端游戏</span><b>{{ launchers.length }}</b><em>运行中</em></li>
+          <li><span>代理</span><b>{{ proxies.length }}</b><em>运行中</em></li>
+          <li v-if="ENABLE_PLUGIN_FEATURES"><span>插件</span><b>{{ enabledPluginCount }} / {{ plugins.length }}</b><em>启用 / 总数</em></li>
+        </ul>
+      </section>
+
+      <!-- 上次代理 -->
+      <section class="card">
+        <header class="card-title">
+          <h2>上次代理</h2>
+          <router-link to="/servers" class="card-link">去网络游戏</router-link>
+        </header>
+
+        <div v-if="proxyHistory.length" class="history-list">
+          <button v-for="item in proxyHistory.slice(0, 3)" :key="item.mode + item.id"
+            class="history-item" @click="openHistory(item)">
+            <span class="history-main">
+              <span class="history-name">{{ item.name }}</span>
+              <span class="history-tag">{{ item.mode === 'rental' ? '租赁服' : '网络游戏' }}</span>
+            </span>
+            <span class="history-meta">
+              <span v-if="item.version">版本 {{ item.version }}</span>
+              <span v-if="item.player">角色 {{ item.player }}</span>
+              <span class="history-time">{{ timeAgo(item.time) }}</span>
+            </span>
           </button>
+          <p v-if="proxyHistory.length > 3" class="history-more">
+            共 {{ proxyHistory.length }} 条记录，仅显示最近 3 条
+          </p>
         </div>
-      </div>
 
-      <Alert :show="showModal" :message="modalMessage" title="提示" @ok="reload()" />
-
+        <div v-else class="account-empty">
+          <p class="empty-title">还没有代理记录</p>
+          <p class="empty-tip">在网络游戏详情页点「启动代理」后，会记录在这里，方便下次快速回到同一个服务器。</p>
+          <router-link to="/servers" class="btn-primary">去网络游戏页</router-link>
+        </div>
+      </section>
     </div>
+
+    <!-- 快捷入口 -->
+    <section class="card shortcuts-card">
+      <header class="card-title">
+        <h2>快捷入口</h2>
+      </header>
+      <div class="shortcuts">
+        <router-link v-for="item in shortcuts" :key="item.path" :to="item.path" class="shortcut">
+          <span class="shortcut-name">{{ item.name }}</span>
+          <span class="shortcut-desc">{{ item.desc }}</span>
+        </router-link>
+      </div>
+    </section>
+
+    <p class="version-line">Fantnel {{ versionText }}</p>
+
+    <Alert :show="showSwitchConfirm" title="切换优先账号" :message="switchMessage" :showCancel="true"
+      okText="确认切换" cancelText="取消" @ok="doSwitch" @cancel="cancelSwitch" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getHome_Info, setThemeSwitch } from '../utils/Tools.js'
+import { ref, computed, onMounted } from 'vue'
+import { Message } from '../utils/message.js'
+import {
+  getGameAccount,
+  getAccounts,
+  getAvailableAccounts,
+  getGameLaunchInfo,
+  getProxyServerInfo,
+  getPlugins,
+  getProxyHistory,
+  getVersion,
+  switchAccount
+} from '../utils/Tools.js'
+import { ENABLE_PLUGIN_FEATURES } from '../config/features.js'
 
-const showModal = ref(false)
-const modalMessage = ref('')
+const loading = ref(false)
+const currentAccount = ref(null)
+const accounts = ref([])
+const availableAccounts = ref([])
+const launchers = ref([])
+const proxies = ref([])
+const plugins = ref([])
+const version = ref(null)
+const proxyHistory = ref([])
 
-// 广告数据
-const adData = ref({
-  ad1: { name: '', text: '' },
-  ad2: { name: '', text: '' },
-  ad3: { name: '', text: '' }
-})
+const showSwitchConfirm = ref(false)
+const switchTarget = ref(null)
 
-// 处理文件拖拽
-const handleFileDrop = (event) => {
-  const files = event.dataTransfer.files
-  if (files.length > 0) {
-    handleFile(files[0])
+const shortcuts = [
+  { name: '游戏账号', desc: '添加 / 登录 / 切换', path: '/game-accounts' },
+  { name: '网络游戏', desc: '浏览并进入服务器', path: '/servers' },
+  { name: '租赁服', desc: '租赁服角色管理', path: '/game-rental' },
+  // 插件商城：远端接口已下线，由 ENABLE_PLUGIN_FEATURES 统一控制
+  ...(ENABLE_PLUGIN_FEATURES ? [{ name: '插件商城', desc: '下载并安装插件', path: '/plugin-store' }] : []),
+  { name: '设置', desc: '内存 / JVM / 启动项', path: '/settings' }
+]
+
+// 只有登录成功的账号才能被设为优先账号
+const switchableAccounts = computed(() => availableAccounts.value)
+const enabledPluginCount = computed(() => plugins.value.filter(p => p.status === '1').length)
+const versionText = computed(() => version.value?.version || '—')
+const switchMessage = computed(() => switchTarget.value
+  ? `确定把「${switchTarget.value.name || switchTarget.value.account}」设为优先账号吗？`
+  : '')
+
+const typeText = (type) => {
+  switch ((type || '').toLowerCase()) {
+    case '4399': return '4399'
+    case '4399com': return '4399Com'
+    case '163email': return '163Email'
+    case 'cookie': return 'Cookie / Auth'
+    default: return type || '未知'
   }
 }
 
-// 处理文件选择
-const handleFileSelect = (event) => {
-  const files = event.target.files
-  if (files.length > 0) {
-    handleFile(files[0])
-  }
+// 相对时间：刚刚 / N 分钟前 / N 小时前 / N 天前
+const timeAgo = (ms) => {
+  if (!ms) return ''
+  const diff = Date.now() - ms
+  if (diff < 60 * 1000) return '刚刚'
+  const min = Math.floor(diff / (60 * 1000))
+  if (min < 60) return `${min} 分钟前`
+  const hour = Math.floor(min / 60)
+  if (hour < 24) return `${hour} 小时前`
+  const day = Math.floor(hour / 24)
+  if (day < 30) return `${day} 天前`
+  return new Date(ms).toLocaleDateString()
 }
 
-// 处理文件
-const handleFile = (file) => {
-  if (file.name.endsWith('.fant.json')) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        showModal.value = true
-        modalMessage.value = '正在应用主题，请稍后...'
-        var json = JSON.parse(e.target.result)
-        setThemeSwitch(json).then(data => {
-          modalMessage.value = data.msg
-        })
-      } catch (error) {
-        console.error('Fantnel 主题 解析错误:', error)
-        alert('Fantnel 主题 文件解析失败，请检查文件格式。')
-      }
-    }
-    reader.onerror = () => {
-      alert('文件读取失败，请重试。')
-    }
-    reader.readAsText(file)
-  } else {
-    alert('请选择 Fantnel 主题 格式的文件。')
-  }
+// 点击历史记录：网络游戏进服务详情页，租赁服进租赁详情页
+const openHistory = (item) => {
+  location.href = item.mode === 'rental' ? `/game-rental/${item.id}` : `/server/${item.id}`
 }
 
-const reload = () => {
-  location.reload(true);
-}
-
-// 获取首页数据
-onMounted(async () => {
+// 静默请求：网络异常或业务错误（如未登录的错误码 15）都返回 null，不影响页面渲染
+const safe = async (fn) => {
   try {
-    const data = await getHome_Info()
-    adData.value = data
+    const data = await fn()
+    return data && data.code === 1 ? data.data : null
   } catch (error) {
-    console.error('获取首页数据失败:', error)
+    console.warn('[home] 请求失败:', error?.message)
+    return null
   }
-})
+}
+
+const loadAll = async () => {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const [cur, all, avail, launch, proxy, plugin, ver, history] = await Promise.all([
+      safe(getGameAccount),
+      safe(getAccounts),
+      safe(getAvailableAccounts),
+      safe(getGameLaunchInfo),
+      safe(getProxyServerInfo),
+      // 插件统计：插件功能隐藏时不再发起请求
+      ENABLE_PLUGIN_FEATURES ? safe(getPlugins) : Promise.resolve(null),
+      safe(getVersion),
+      // 代理历史：主页「上次代理」
+      safe(getProxyHistory)
+    ])
+
+    currentAccount.value = cur
+    accounts.value = all || []
+    availableAccounts.value = avail || []
+    launchers.value = launch || []
+    proxies.value = proxy?.proxies || []
+    plugins.value = plugin || []
+    version.value = ver
+    proxyHistory.value = history || []
+  } finally {
+    loading.value = false
+  }
+}
+
+const askSwitch = (acc) => {
+  switchTarget.value = acc
+  showSwitchConfirm.value = true
+}
+
+const cancelSwitch = () => {
+  showSwitchConfirm.value = false
+  switchTarget.value = null
+}
+
+const doSwitch = async () => {
+  const target = switchTarget.value
+  cancelSwitch()
+  // 账号 Id 从 0 开始，不能用真假值判断
+  if (target?.id == null) return
+  try {
+    const data = await switchAccount(target.id)
+    if (data.code === 1) {
+      Message.success('已切换优先账号')
+      await loadAll()
+    } else {
+      Message.warning(data.msg || '切换失败')
+    }
+  } catch (error) {
+    Message.error('切换失败，请检查网络连接')
+  }
+}
+
+onMounted(loadAll)
 </script>
 
 <style scoped>
@@ -129,134 +277,342 @@ h1 {
   font-size: 2rem;
 }
 
-.intro {
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-header h1 {
+  margin-bottom: 0;
+}
+
+.refresh-btn {
+  flex: none;
   background-color: var(--sidebar-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-}
-
-.intro p {
   color: var(--text-color);
-  font-size: 1.1rem;
-  line-height: 1.6;
+  border: 1px solid var(--border-color);
+  padding: 6px 14px;
+  font-size: 0.85rem;
 }
 
-.features {
-  margin-top: 30px;
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
-.features h2 {
+.intro-line {
   color: var(--text-color);
-  margin-bottom: 20px;
-  font-size: 1.5rem;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.feature-item {
-  background-color: var(--sidebar-bg);
-  padding: 20px;
-  border-radius: 8px;
-  transition: transform 0.3s ease;
-}
-
-.feature-item:hover {
-  transform: translateY(-5px);
-}
-
-.feature-item h3 {
-  color: var(--text-color);
-  margin-bottom: 10px;
-  font-size: 1.2rem;
-}
-
-.feature-item p {
-  color: var(--text-color);
+  opacity: 0.65;
   font-size: 0.95rem;
-  line-height: 1.5;
+  margin: 10px 0 24px;
 }
 
-/* 广告位样式 */
-.ads {
+/* 卡片 */
+.card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
-  opacity: 0.7;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.ad-card {
-  background-color: var(--ad-bg);
-  padding: 15px;
+.card {
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.card-title h2 {
+  color: var(--text-color);
+  font-size: 1.05rem;
+}
+
+.card-link {
+  font-size: 0.85rem;
+  color: var(--sidebar-active);
+}
+
+.account-name {
+  color: var(--text-color);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.kv {
+  list-style: none;
+}
+
+.kv li {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-color);
+  font-size: 0.9rem;
+}
+
+.kv li:last-child {
+  border-bottom: none;
+}
+
+.kv span {
+  color: var(--text-color);
+  opacity: 0.6;
+  min-width: 72px;
+}
+
+.kv b {
+  color: var(--text-color);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.tag-ok {
+  color: #2e7d32;
+}
+
+.account-empty {
+  padding: 4px 0;
+}
+
+.empty-title {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.empty-tip {
+  color: var(--text-color);
+  opacity: 0.65;
+  font-size: 0.875rem;
+  margin-bottom: 14px;
+}
+
+.btn-primary {
+  display: inline-block;
+  background-color: var(--sidebar-active);
+  color: #fff;
+  padding: 8px 16px;
   border-radius: 6px;
   font-size: 0.9rem;
 }
 
-.ad-card h3 {
+.btn-primary:hover {
+  color: #fff;
+  opacity: 0.9;
+}
+
+/* 上次代理 */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.history-item:hover {
+  background-color: rgba(128, 128, 128, 0.12);
+  border-color: var(--sidebar-active);
+}
+
+.history-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-name {
   color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-tag {
+  flex: none;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--sidebar-active);
+  border: 1px solid var(--sidebar-active);
+  opacity: 0.9;
+}
+
+.history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-color);
+  opacity: 0.6;
+  font-size: 0.8rem;
+  /* 统一使用带中文字形的字体：Arial 没有汉字，中文会回落到雅黑，
+     导致同一行里「数字」与「汉字」的字形高度/基线不一致 */
+  font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+  line-height: 1.2;
+}
+
+.history-meta > span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.history-time {
+  margin-left: auto;
+}
+
+.history-more {
+  color: var(--text-color);
+  opacity: 0.5;
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.quick-switch {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.quick-switch-title {
+  color: var(--text-color);
+  opacity: 0.6;
+  font-size: 0.8rem;
   margin-bottom: 8px;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  border-radius: 999px;
+}
+
+.chip.active {
+  border-color: var(--sidebar-active);
+  color: var(--sidebar-active);
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* 运行状态 */
+.stat-list {
+  list-style: none;
+}
+
+.stat-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border-color);
+  font-size: 0.9rem;
+}
+
+.stat-list li:last-child {
+  border-bottom: none;
+}
+
+.stat-list span {
+  color: var(--text-color);
+  opacity: 0.6;
+  min-width: 72px;
+}
+
+.stat-list b {
+  color: var(--text-color);
   font-size: 1rem;
 }
 
-.ad-card p {
+.stat-list em {
   color: var(--text-color);
-  line-height: 1.4;
+  opacity: 0.5;
+  font-size: 0.8rem;
+  font-style: normal;
 }
 
-/* 拖拽区域样式 */
-.drag-drop-area {
-  background-color: var(--sidebar-bg);
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  padding: 32px;
-  margin-bottom: 30px;
-  transition: border-color 0.3s ease;
-}
-
-.drag-drop-area:hover {
-  border-color: var(--primary-color);
-}
-
-.drag-drop-content {
-  text-align: center;
-}
-
-.drag-drop-text {
+.stat-foot {
+  margin-top: 10px;
   color: var(--text-color);
-  margin-bottom: 8px;
-  font-size: 1rem;
+  opacity: 0.5;
+  font-size: 0.8rem;
 }
 
-.drag-drop-subtext {
-  color: var(--text-muted);
-  font-size: 0.875rem;
+/* 快捷入口 */
+.shortcuts-card {
   margin-bottom: 16px;
 }
 
-.drag-drop-subtext a {
-  color: var(--primary-color);
-  text-decoration: none;
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
-.drag-drop-subtext a:hover {
-  text-decoration: underline;
+.shortcut {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-color);
 }
 
-.hidden {
-  display: none;
+.shortcut:hover {
+  border-color: var(--sidebar-active);
+  color: var(--sidebar-active);
 }
 
-.drag-drop-button {
-  margin-top: 16px;
-  padding: 8px 16px;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.shortcut-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.shortcut-desc {
+  font-size: 0.78rem;
+  opacity: 0.6;
+}
+
+.version-line {
+  color: var(--text-color);
+  opacity: 0.45;
+  font-size: 0.8rem;
 }
 </style>

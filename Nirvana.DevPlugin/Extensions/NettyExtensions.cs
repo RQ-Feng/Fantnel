@@ -76,6 +76,12 @@ public static class NettyExtensions {
             var num = 0;
             var num2 = 0;
             while (true) {
+                // 帧体已耗尽时给出可读的错误，而不是 DotNetty 的 IndexOutOfRange
+                if (!buffer.IsReadable()) {
+                    throw new IndexOutOfRangeException(
+                        $"VarInt 读取越界: readerIndex={buffer.ReaderIndex}, writerIndex={buffer.WriterIndex}, 剩余可读字节=0");
+                }
+
                 var b = buffer.ReadByte();
                 num |= (b & 0x7F) << num2;
                 if ((b & 0x80) == 0) {

@@ -1,11 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ENABLE_PLUGIN_FEATURES } from '../config/features'
 
 const routes = [
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/nirvana/NirvanaLogin.vue')
-  },
   {
     path: '/',
     name: 'Home',
@@ -36,21 +32,24 @@ const routes = [
     name: 'SkinDetail',
     component: () => import('../views/game/skin/SkinDetail.vue')
   },
-  {
-    path: '/plugins',
-    name: 'Plugins',
-    component: () => import('../views/plugin/Plugins.vue')
-  },
-  {
-    path: '/plugin-store',
-    name: 'PluginStore',
-    component: () => import('../views/plugin/PluginStore.vue')
-  },
-  {
-    path: '/plugin/:id',
-    name: 'PluginDetail',
-    component: () => import('../views/plugin/PluginDetail.vue')
-  },
+  // 插件相关路由：远端插件接口已下线，关闭后直接进 catch-all 重定向到首页
+  ...(ENABLE_PLUGIN_FEATURES ? [
+    {
+      path: '/plugins',
+      name: 'Plugins',
+      component: () => import('../views/plugin/Plugins.vue')
+    },
+    {
+      path: '/plugin-store',
+      name: 'PluginStore',
+      component: () => import('../views/plugin/PluginStore.vue')
+    },
+    {
+      path: '/plugin/:id',
+      name: 'PluginDetail',
+      component: () => import('../views/plugin/PluginDetail.vue')
+    }
+  ] : []),
   {
     path: '/proxy-manager',
     name: 'ProxyManager',
@@ -77,11 +76,6 @@ const routes = [
     component: () => import('../views/game/rental/GameRentalDetail.vue')
   },
   {
-    path: '/user',
-    name: 'UserHome',
-    component: () => import('../views/nirvana/UserHome.vue')
-  },
-  {
     path: '/settings',
     name: 'Settings',
     component: () => import('../views/Settings.vue')
@@ -92,9 +86,8 @@ const routes = [
     component: () => import('../views/others/Logs.vue')
   },
   {
-    path: '/login-socket',
-    name: 'LoginSocket',
-    component: () => import('../views/nirvana/NirvanaLoginSocket.vue')
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

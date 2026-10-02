@@ -61,6 +61,7 @@ public class CacheManager {
                         }
                     })
                 };
+                // 错峰启动：三个接口同时打容易触发远端的限流/繁忙
                 foreach (var thread in threads) {
                     thread.Start();
                     Thread.Sleep(500);

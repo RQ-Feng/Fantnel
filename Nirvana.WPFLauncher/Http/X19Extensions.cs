@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Nirvana.WPFLauncher.Protocol;
@@ -48,7 +49,7 @@ public class X19Extensions(string url, bool token = true) {
     public async Task<T?> ApiBytes<T>(string url, byte[]? body = null)
     {
         var response = await ApiAsync(url, body);
-        return ToType<T>(response);
+        return ToType<T>(response, url);
     }
 
     public async Task<T?> ApiAsync<T>(string url, object? body = null, string? userId = null, string? userToken = null)
@@ -64,10 +65,10 @@ public class X19Extensions(string url, bool token = true) {
     private async Task<T?> ApiAsync<T>(string url, string? body = null, string? userId = null, string? userToken = null)
     {
         var response = await ApiRawByString(url, body, userId, userToken);
-        return ToType<T>(response);
+        return ToType<T>(response, url);
     }
 
-    private static T? ToType<T>(string? response)
+    private static T? ToType<T>(string? response, string? context = null)
     {
         if (response == null) {
             return default;
@@ -81,7 +82,7 @@ public class X19Extensions(string url, bool token = true) {
             return (T)(object)response;
         }
 
-        return JsonSerializer.Deserialize<T>(response);
+        return JsonSafe.Deserialize<T>(response, context ?? "接口");
     }
 
     private async Task<string?> ApiRawByString(string url, string? body = null, string? userId = null, string? userToken = null)

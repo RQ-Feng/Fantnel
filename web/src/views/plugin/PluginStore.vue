@@ -3,9 +3,14 @@
     <h1>插件商城</h1>
     <p>插件商城页面，用于浏览和下载系统中的插件。</p>
     <div class="search-bar">
-      <input type="text" v-model="searchQuery" placeholder="搜索插件...">
+      <input type="text" v-model="searchQuery" placeholder="搜索插件..." :disabled="plugins.length === 0">
     </div>
-    <div class="plugin-list">
+
+    <p v-if="loading" class="store-hint">正在获取插件列表...</p>
+    <p v-else-if="loadError" class="store-hint store-error">{{ loadError }}</p>
+    <p v-else-if="plugins.length === 0" class="store-hint">插件商城暂无可用插件。</p>
+
+    <div v-else class="plugin-list">
       <div v-for="plugin in filteredPlugins" :key="plugin.id" class="plugin-item" @click="navigateToPlugin(plugin.id)">
         <div class="plugin-info">
           <h3>{{ plugin.name }}</h3>
@@ -25,28 +30,37 @@ import { ref, computed, onMounted } from 'vue'
 import { getPluginList } from '../../utils/Tools'
 
 const searchQuery = ref('')
-const plugins = ref();
-// [
-//   {
-//     id: "f110da9f-f0cb-f926-c72c-feac7fcf3601",
-//     name: "Heypixel Protocol",
-//     shortDescription: "A lightweight protocol plugin for Heypixel, enabling seamless compatibility and optimized performance.",
-//     publisher: "DevCodexus",
-//     downloadCount: 25275
-//   }
-// ]
+const plugins = ref([])
+const loading = ref(true)
+const loadError = ref('')
 
 // 获取插件列表
+// 注意：接口失败时后端返回的是错误对象（data 为调用栈数组），
+// 不能直接塞进列表，否则 filteredPlugins 会抛 "Cannot read properties of undefined"。
 onMounted(async () => {
-  plugins.value = await getPluginList().then(res => res.data);
-});
+  try {
+    const res = await getPluginList()
+    if (res?.code === 1 && Array.isArray(res.data)) {
+      plugins.value = res.data
+    } else {
+      loadError.value = `插件商城获取失败：${res?.msg || '服务端返回异常'}`
+      console.warn('[plugin-store] 获取插件列表失败:', res)
+    }
+  } catch (error) {
+    loadError.value = '连接插件商城失败，请检查网络或服务端状态。'
+    console.error('[plugin-store] 获取插件列表异常:', error)
+  } finally {
+    loading.value = false
+  }
+})
 
 const filteredPlugins = computed(() => {
-  if (!searchQuery.value) return plugins.value
+  const keyword = searchQuery.value.trim().toLowerCase()
+  if (!keyword) return plugins.value
   return plugins.value.filter(plugin =>
-    plugin.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    plugin.shortDescription.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    plugin.publisher.toLowerCase().includes(searchQuery.value.toLowerCase())
+    String(plugin?.name ?? '').toLowerCase().includes(keyword) ||
+    String(plugin?.shortDescription ?? '').toLowerCase().includes(keyword) ||
+    String(plugin?.publisher ?? '').toLowerCase().includes(keyword)
   )
 })
 
@@ -74,6 +88,18 @@ function navigateToPlugin(id) {
   font-size: 16px;
   background-color: var(--bg-color);
   color: var(--text-color);
+}
+
+.store-hint {
+  padding: 20px 10px;
+  color: var(--text-color);
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.store-error {
+  color: #e57373;
+  opacity: 1;
 }
 
 .plugin-list {

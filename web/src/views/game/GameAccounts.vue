@@ -122,20 +122,18 @@
       </div>
     </div>
 
-    <button @click="showCaptcha" class="add-random-btn">随机登录</button>
     <button @click="showAddModal = true" class="add-btn">添加账号</button>
-
-    <!-- 错误信息显示 -->
-    <div v-if="error" class="error-message">
-      {{ error }}
-    </div>
 
     <!-- 删除确认对话框 -->
     <Alert :show="showDeleteConfirm" message="确定要删除这个账号吗？删除后将无法恢复。" title="删除确认" :showCancel="true" okText="确认删除"
       cancelText="取消" @ok="handleConfirmDelete" @cancel="handleCancelDelete" />
 
     <!-- 登录中提示 -->
-    <Alert :show="loggingIn" message="登录中，请稍候..." title="登录中" :closable="false" :showCancel="false" />
+    <Alert :show="loggingIn" message="登录中，请稍候..." title="登录中" :closable="false" :showCancel="false"
+      @ok="loggingIn = false" />
+
+    <!-- 操作失败提示（登录 / 加载 / 删除等没有独立弹窗的场景） -->
+    <Alert :show="showMessageModal" :title="messageTitle" :message="messageBody" @ok="showMessageModal = false" />
 
     <!-- 验证码输入弹窗 -->
     <div v-if="showCaptchaModal" class="modal">
@@ -174,14 +172,10 @@
     </div>
   </div>
 
-  <GeetestCaptcha :config="{ captchaId: 'fefebb64747ce99237ecdf1830f0ae63', product: 'bind' }"
-    @initialized="onCaptchaInitialized" />
-
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { GeetestCaptcha } from 'vue3-geetest'
 import {
   getAccounts,
   addAccount,
@@ -190,8 +184,7 @@ import {
   updateAccount,
   getCaptcha4399Url,
   verifyCaptcha4399,
-  getCaptcha4399Content,
-  randomGameAccount
+  getCaptcha4399Content
 } from '../../utils/Tools'
 
 const accounts = ref([])
@@ -202,37 +195,13 @@ const error = ref('')
 const showDeleteConfirm = ref(false)
 const accountToDelete = ref(null)
 
-var captchaObj = null
-
-const showCaptcha = function () {
-  if (captchaObj) {
-    captchaObj.showCaptcha();
-  }
-};
-
-const onCaptchaInitialized = (obj) => {
-  captchaObj = obj;
-  captchaObj.onSuccess(() => {
-    error.value = '正在获取账号...'
-    randomGameAccount(captchaObj.getValidate()).then((data) => {
-      if (data.code === 1) {
-        error.value = data.msg || '获取账号成功'
-        location.reload()
-      } else {
-        error.value = data.msg || '获取账号失败，请稍后重试'
-      }
-    })
-    captchaObj.reset()
-  });
-};
-
 getAccounts().then(data => {
   accounts.value = data.data || []
 }).catch((err) => {
   if (err.status === 500) {
-    error.value = '连接服务器失败，请检查应用状态。'
+    showMessage('账号列表加载失败', '连接服务器失败，请检查应用状态。')
   } else {
-    error.value = err.message || '获取账号列表失败，请稍后重试'
+    showMessage('账号列表加载失败', err.message || '获取账号列表失败，请稍后重试')
   }
 })
 
@@ -250,6 +219,11 @@ const captchaLoading = ref(false)
 
 // 登录中状态
 const loggingIn = ref(false)
+
+// 通用消息弹窗（登录 / 加载 / 删除等失败时使用）
+const messageTitle = ref('提示')
+const messageBody = ref('')
+const showMessageModal = ref(false)
 
 function selectAccount1(id) {
   const account = accounts.value.find(acc => acc.id === id);
@@ -274,15 +248,23 @@ function selectAccount2(id) {
     if (data.code === 1) {
       location.reload();
     } else {
-      error.value = data.msg || '选择失败，请稍后重试';
+      showMessage('登录失败', data.msg || '登录失败，请稍后重试');
     }
   }).catch(err => {
     console.error('选择账号失败:', err);
-    error.value = '网络错误，请检查连接后重试';
+    showMessage('登录失败', '网络错误，请检查连接后重试');
   }).finally(() => {
     // 隐藏登录中提示
     loggingIn.value = false;
   });
+}
+
+// 弹窗显示错误信息（登录 / 加载 / 删除等没有独立弹窗的场景）
+// 错误内容可能来自远端（例如 4399/网易的原文），先转义再交给 Alert 渲染
+function showMessage(title, message) {
+  messageTitle.value = title;
+  messageBody.value = (String(message ?? '').trim() || '操作失败').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  showMessageModal.value = true;
 }
 
 // 加载验证码图片
@@ -418,11 +400,11 @@ function handleConfirmDelete() {
     if (data.code === 1) {
       location.reload();
     } else {
-      error.value = data.msg || '删除失败，请稍后重试';
+      showMessage('删除失败', data.msg || '删除失败，请稍后重试')
     }
   }).catch(err => {
     console.error('删除账号失败:', err);
-    error.value = '网络错误，请检查连接后重试';
+    showMessage('删除失败', '网络错误，请检查连接后重试')
   }).finally(() => {
     accountToDelete.value = null;
     showDeleteConfirm.value = false;
@@ -531,21 +513,6 @@ tr:hover {
 .delete-btn {
   background-color: #f44336;
   color: white;
-}
-
-.add-random-btn {
-  position: fixed;
-  right: 130px;
-  bottom: 50px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 5;
 }
 
 .add-btn {

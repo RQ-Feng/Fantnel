@@ -79,6 +79,9 @@ public static class ProxiesMessage {
             // 创建代理 并 下载资源
             var interceptor = new InterceptorManager(server, character, version, address, mods, port).Interceptor;
 
+            // 记录历史：主页「上次代理」用它直接回到同一个服务器
+            ProxyHistoryManager.Record(server.EntityId, server.Name, "net", version.Name, name);
+
             // 增加代理
             return ActiveGameAndProxies.Add(interceptor, server.EntityId);
         } catch (Exception ex) {
@@ -119,6 +122,9 @@ public static class ProxiesMessage {
 
             // 创建代理 并 下载资源
             var interceptor = new InterceptorManager(server, character, versionName, address, mods, port).Interceptor;
+
+            // 记录历史：主页「上次代理」用它直接回到同一个服务器
+            ProxyHistoryManager.Record(server.EntityId, server.ServerName, "rental", versionName, name);
 
             // 增加代理
             return ActiveGameAndProxies.Add(interceptor, server.EntityId);

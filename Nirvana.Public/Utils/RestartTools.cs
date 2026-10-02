@@ -68,7 +68,8 @@ public static class RestartTools {
 
     public static T Get<T>(string name, string[] args, T? defaultValue = default)
     {
-        for (var i = 0; i < args.Length; i++) {
+        // 从后往前找：同名参数以最后一个为准（便于 dotnet run -- --fantnel_port 13600 覆盖 launchSettings）
+        for (var i = args.Length - 2; i >= 0; i--) {
             if (args[i] == "--" + name) {
                 return (T)Convert.ChangeType(args[i + 1], typeof(T));
             }

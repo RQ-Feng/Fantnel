@@ -1,7 +1,7 @@
 <template>
   <div class="servers">
-    <h1>服务器管理</h1>
-    <p>网络服务器页面，用于启动网络游戏。</p>
+    <h1>网络游戏</h1>
+    <p>网络游戏页面，用于启动网络游戏。</p>
     <div class="search-bar">
       <input type="text" v-model="searchQuery" placeholder="搜索服务器...">
     </div>
@@ -75,8 +75,9 @@ async function loadServersInBatches() {
     if (!ok) {
       break
     }
-    // 每次加载完服务器后，等待 600 毫秒
-    await new Promise(resolve => setTimeout(resolve, 700))
+    // 批次间隔：原来 700ms，纯额外等忦（50 个服务器 = 4 批 = 2.1s）；
+    // 后端已并发补齐图片/版本，这里只需极短的让出时间
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
 }
 

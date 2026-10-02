@@ -5,7 +5,6 @@ using Nirvana.Common.Manager;
 using Nirvana.Common.Utils;
 using Nirvana.Common.Utils.CodeTools;
 using Nirvana.Public.Entities.Login;
-using Nirvana.Public.Entities.Nirvana;
 using Nirvana.Public.Message;
 using Serilog;
 
@@ -120,12 +119,5 @@ public class GameAccountController : ControllerBase {
     public IActionResult GetGameAccountHttp()
     {
         return Ok(Code.ToJson(ErrorCode.Success, InfoManager.GetGameAccount()));
-    }
-
-    [HttpPost("/api/gameaccount/random")]
-    public IActionResult RandomAccountHttp([FromBody] EntityGeeTest captcha)
-    {
-        AccountMessage.RandomAccount(captcha).GetAwaiter().GetResult();
-        return Ok(Code.ToJson(ErrorCode.Success));
     }
 }

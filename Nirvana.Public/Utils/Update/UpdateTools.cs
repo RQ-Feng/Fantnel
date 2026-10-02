@@ -53,17 +53,7 @@ public static class UpdateTools {
         }
 
         // --- Fantnel UI ---
-        update = 0; // 0:正常检查 1:不检查 2:已被检查
-        if (args.Any(arg => arg == "--update_ui_false")) {
-            update = 2;
-        }
-
-        if (update == 0) {
-            await new EntityUpdate {
-                Mode = "ui." + ConfigUtil.GetConfig("themeValue", RestartTools.Get("default_skin_id", args, "nirvana")),
-                Name = "Fantnel UI"
-            }.CheckUpdateSafe();
-        }
+        // 前端 UI 随程序发布（resources/static），不再从远端 ui.* 包更新
 
         // --- Static ---
         update = 0; // 0:正常检查 1:不检查 2:已被检查

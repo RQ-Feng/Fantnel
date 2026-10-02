@@ -83,11 +83,12 @@
     <div v-if="showProxyModal" class="modal">
       <div class="modal-content">
         <h2>启动代理</h2>
-        <b>
+        <!-- 插件提示：远端插件接口已下线，由 ENABLE_PLUGIN_FEATURES 统一控制 -->
+        <b v-if="ENABLE_PLUGIN_FEATURES">
           <h6>如果你未安装 核心依赖插件 这大概会导致验证失败。</h6>
           <h6>部分服务器可能需要安装 插件 才能正常进入游戏。</h6>
         </b>
-        <div class="plugins-section">
+        <div v-if="ENABLE_PLUGIN_FEATURES" class="plugins-section">
           <div v-if="isLoadingPlugins" class="loading">加载中...</div>
           <div v-else-if="pluginError" class="plugin-error">
             <div class="error-message">{{ pluginError }}</div>
@@ -146,6 +147,7 @@
 import { ref, onMounted, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { selectServer, getServerInfo, addServerRole, launchGame, switchAccount, getGameAccount, launchProxy, getServerPlugins } from '../../../utils/Tools'
+import { ENABLE_PLUGIN_FEATURES } from '../../../config/features'
 import randomNameData from '../../../../public/random.name.json'
 
 const route = useRoute()
@@ -317,6 +319,13 @@ function launchGameBtn() {
 }
 
 async function launchProxyBtn() {
+  // 插件功能已隐藏：远端依赖插件接口（/api/fantnel/dependence）已下线，
+  // 取不到插件列表也拿不到有效错误信息，直接启动代理，不再弹这个中间窗。
+  if (!ENABLE_PLUGIN_FEATURES) {
+    launchProxyConfirm();
+    return;
+  }
+
   // 加载服务器依赖插件
   await loadServerPlugins();
 

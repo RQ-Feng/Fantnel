@@ -68,7 +68,7 @@ public static class InitProgram {
         _ = Task.Run(() => {
             try {
                 Thread.Sleep(1000);
-                InfoManager.GetToken(); // 是否登录
+                InfoManager.GetToken(); // 检查是否有游戏账号
                 CacheManager.CacheServer();
             } catch (Exception) {
                 // ignored
@@ -192,10 +192,5 @@ public static class InitProgram {
             Log.Information("CRC Salt 计算完成: {0}....", X19.CrcSalt[..6]);
         }
 
-    }
-
-    public static async Task<bool> SafeTheme(string themeValue)
-    {
-        return await X19Extensions.Nirvana.ApiAsync<EntityResponseBase>("/api/theme/name?value=" + themeValue) is { Code: 1 };
     }
 }
