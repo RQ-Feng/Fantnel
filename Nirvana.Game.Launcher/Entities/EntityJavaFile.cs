@@ -128,7 +128,7 @@ public class EntityJavaFile {
         }
 
         if (IsNullOrEmptyByUrl()) {
-            Log.Warning("jar {0} url is empty", GetPath1());
+            Log.Warning("jar {0} 的下载地址为空", GetPath1());
             return false;
         }
 
@@ -139,7 +139,7 @@ public class EntityJavaFile {
     private async Task DownloadAsync()
     {
         if (Url == null) {
-            Log.Warning("jar {0} url is empty", GetPath1());
+            Log.Warning("jar {0} 的下载地址为空", GetPath1());
             return;
         }
 

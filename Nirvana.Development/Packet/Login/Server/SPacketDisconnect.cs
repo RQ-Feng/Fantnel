@@ -20,7 +20,7 @@ public class SPacketDisconnect : FPacket {
 
     public override bool HandlePacket(BGameConnection connection)
     {
-        Log.Debug("Disconnect Reason: {0}", _reason);
+        Log.Debug("断开原因: {0}", _reason);
         return false;
     }
 }

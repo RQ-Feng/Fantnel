@@ -59,7 +59,7 @@ public class CHandshake : BPacket {
         };
         // 把握手里的原始协议号也打出来：映射结果（如 772 -> V1210）直接可核对，
         // 按版本注册的包（LoginAcknowledged / FinishConfiguration 等）能否匹配全看它。
-        Log.Information("Protocol {0}({1}), Next state: {2}, Address: {3} > {4}", _packetVersion, connection.ProtocolVersion, connection.State, _serverAddress, serverAddress.Replace("\0", "|"));
+        Log.Information("协议 {0}({1})，下一状态: {2}，地址: {3} -> {4}", _packetVersion, connection.ProtocolVersion, connection.State.ToDisplay(), _serverAddress, serverAddress.Replace("\0", "|"));
         _serverAddress = serverAddress;
         return false;
     }

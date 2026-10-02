@@ -29,7 +29,7 @@ public class CPacketLoginStart : BPacket {
 
     public override bool HandlePacket(BGameConnection connection)
     {
-        Log.Information("Trying Login: {0} > {1}", _userName, connection.Config.NickName);
+        Log.Information("登录信息: {0} -> {1}", _userName, connection.Config.NickName);
         _userName = connection.Config.NickName;
         return false;
     }

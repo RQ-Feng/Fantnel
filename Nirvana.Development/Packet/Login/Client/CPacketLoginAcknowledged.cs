@@ -15,7 +15,7 @@ public class CPacketLoginAcknowledged : DPacket {
         // }
 
         connection.State = EnumConnectionState.Configuration;
-        Log.Information("Login Acknowledged.");
+        Log.Information("登录已确认（进入配置阶段）");
         return false;
     }
 }

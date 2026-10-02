@@ -32,7 +32,7 @@ public class PluginState {
         var instances = new Dictionary<Type, T>();
         foreach (var item in GetTypes(tagetAssembly, typeof(T))) {
             if (Activator.CreateInstance(item) is not T t) {
-                Log.Warning("Plugin {0} is not a {1}", item.FullName, typeof(T).Name);
+                Log.Warning("插件 {0} 不是 {1}", item.FullName, typeof(T).Name);
                 continue;
             }
 
@@ -53,7 +53,7 @@ public class PluginState {
         foreach (var item in CreateInstance<TValue>(tagetAssembly)) {
             var key = item.Key.GetCustomAttribute<TKey>(false);
             if (key == null) {
-                Log.Warning("Plugin {0} is missing {1} attribute", item.Key.FullName, typeof(TKey).Name);
+                Log.Warning("插件 {0} 缺少 {1} 特性", item.Key.FullName, typeof(TKey).Name);
                 continue;
             }
 

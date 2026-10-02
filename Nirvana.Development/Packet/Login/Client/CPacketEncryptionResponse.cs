@@ -44,7 +44,7 @@ public class CPacketEncryptionResponse : BPacket {
 
     public override bool HandlePacket(BGameConnection connection)
     {
-        Log.Information("Handling Packet Encryption Response.");
+        Log.Information("正在处理加密响应...");
         return false;
     }
 
@@ -61,12 +61,12 @@ public class CPacketEncryptionResponse : BPacket {
             }
 
             try {
-                Log.Information("Successfully Encryption Response");
+                Log.Information("加密响应已发送");
                 GameConnection.EnableEncryption(connection.ServerChannel, secretKey);
                 connection.ServerChannel.Configuration.AutoRead = true;
                 connection.ServerChannel.Configuration.SetOption(ChannelOption.AutoRead, true);
             } catch (Exception exception) {
-                Log.Error(exception, "Failed Encryption Response");
+                Log.Error(exception, "加密响应处理失败");
             }
         });
     }

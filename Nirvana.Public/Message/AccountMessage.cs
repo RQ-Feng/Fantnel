@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Nirvana.Common;
@@ -15,6 +17,7 @@ using Nirvana.Common.Utils.CodeTools;
 using Nirvana.Public.Entities.Nirvana;
 using Nirvana.Public.Manager;
 using Nirvana.WPFLauncher.Entities.MPay;
+using Nirvana.WPFLauncher.Entities.WPFLauncher;
 using Nirvana.WPFLauncher.Entities.WPFLauncher.Login;
 using Nirvana.WPFLauncher.Http;
 using Nirvana.WPFLauncher.Protocol;
@@ -208,6 +211,9 @@ public static class AccountMessage {
         // 登录成功后 保存账号
         SaveAccount();
         CacheManager.CacheServer();
+
+        // 登录成功 → 启动续登心跳
+        StartKeepAlive();
     }
 
     private static string GenerateCookie(EntityMPayUserResponse user, EntityDevice device)
@@ -351,14 +357,25 @@ public static class AccountMessage {
         Exception? exception = null;
 
         try {
-            var freeSkinCount = NPFLauncher.GetFreeSkinListAsync(0, 1).GetAwaiter().GetResult().Length;
-            if (freeSkinCount > 0) {
-                // 登录成功
-                InfoManager.AddAccount(account);
-                return true;
-            }
+            ProbeAccount();
+            // 登录成功
+            InfoManager.AddAccount(account);
+            StartKeepAlive();
+            return true;
         } catch (Exception e) {
             exception = e;
+        }
+
+        // 业务请求失败最常见的原因是 token 过期：先续期一次再判定失效。
+        // 原来没有这一步，偶发一次失败就把 UserId/Token 清空并落盘（表现为「过一段时间就退登」）。
+        if (RefreshToken(account)) {
+            try {
+                ProbeAccount();
+                InfoManager.AddAccount(account);
+                return true;
+            } catch (Exception) {
+                // 续期后仍然失败 → 继续走下面的清理逻辑
+            }
         }
 
         InfoManager.SetGameAccount(null);
@@ -368,6 +385,149 @@ public static class AccountMessage {
 
         onFailure?.Invoke();
         return exception == null ? false : throw exception;
+    }
+
+    // 用一个业务请求探测登录态
+    // 该接口在 code != 0（未登录）时会抛异常，所以「不抛异常」即登录态有效；
+    // 不看返回条数：账号没有免费皮肤时返回空数组，以前会被误判成未登录。
+    private static void ProbeAccount()
+    {
+        NPFLauncher.GetFreeSkinListAsync(0, 1).GetAwaiter().GetResult();
+    }
+
+    // ================= 续登（登录态续期） =================
+    //
+    // 官方启动器（WPFLauncher）的做法：登录成功后会注册 LOGIN_SUCCESSFUL_LONG_TIME 事件，
+    // 之后每 30 分钟 POST /authentication/update，body 是 {"entity_id": <user_id>}，
+    // 返回体里的 token 就是新的 token，客户端写回并持久化（同时广播 UPDATE_USER_TOKEN）。
+    //
+    // Fantnel 原来没有任何续期动作，只在业务请求失败时清空 UserId/Token，
+    // 所以 token 一到期就表现为：列表页能加载（不需要登录态），一进具体游戏就「没有登录」，
+    // 代理也会因为认证失败而失效。
+
+    // 续登周期
+    // 官方启动器是 30 分钟，但实测本机 token 寿命只有约 20 分钟：
+    //   2026-10-02 22:34 登录 → 22:55 就被判「原因10: 请先登录」
+    // 30 分钟会在第一次续期之前就过期，所以默认取 10 分钟（约 2 倍余量）。
+    // 调试可用命令行参数覆盖：--refresh_interval <分钟>
+    private static readonly TimeSpan RefreshInterval = GetRefreshInterval();
+
+    private static TimeSpan GetRefreshInterval()
+    {
+        const int defaultMinutes = 10;
+        try {
+            var minutes = Nirvana.Public.Utils.RestartTools.Get("refresh_interval", Environment.GetCommandLineArgs(), defaultMinutes);
+            return TimeSpan.FromMinutes(minutes > 0 ? minutes : defaultMinutes);
+        } catch (Exception) {
+            return TimeSpan.FromMinutes(defaultMinutes);
+        }
+    }
+
+    // 单次续登的重试次数（官方是 5 次）
+    private const int RefreshRetry = 3;
+
+    private static readonly Lock RefreshLock = new();
+    private static bool _keepAliveStarted;
+
+    // 启动续登心跳（登录成功后调用；重复调用无副作用）
+    public static void StartKeepAlive()
+    {
+        lock (RefreshLock) {
+            if (_keepAliveStarted) {
+                return;
+            }
+
+            _keepAliveStarted = true;
+        }
+
+        Log.Information("续登心跳已启动：每 {0} 分钟续期一次", RefreshInterval.TotalMinutes);
+        _ = Task.Run(async () => {
+            while (true) {
+                await Task.Delay(RefreshInterval);
+                try {
+                    RefreshAllTokens();
+                } catch (Exception e) {
+                    Log.Warning("续登出错: {0}", e.Message);
+                }
+            }
+        });
+    }
+
+    // 给所有已登录账号续期
+    public static void RefreshAllTokens()
+    {
+        foreach (var account in InfoManager.GameAccountList.ToArray()) {
+            if (account is not { UserId: not null, Token: not null }) {
+                continue;
+            }
+
+            if (RefreshToken(account)) {
+                Log.Information("续登成功: {0}", account.Account ?? account.Name);
+            }
+
+            // 多账号时错开，避免打太高并发
+            Thread.Sleep(300);
+        }
+    }
+
+    // 单个账号续期：POST /authentication/update {"entity_id": <userId>}
+    // 成功时把返回的新 token 写回账号并落盘
+    //
+    // 注意（从官方启动器 aeo.a 反推）：该接口的加密档位是 aeq.c ——
+    // **请求体必须加密**后作为裸参数发送（和 /authentication-otp 完全一样），
+    // 同时带上该账号自己的 user-id / user-token 签名头（官方 IsAuthentication=true 时都会加）。
+    // 直接发明文 JSON 会被服务端丢掉（表现为返回 null）。
+    public static bool RefreshToken(EntityAccount account)
+    {
+        if (account is not { UserId: not null, Token: not null }) {
+            return false;
+        }
+
+        var json = JsonSerializer.Serialize(new EntityRefreshRequest { EntityId = account.UserId }, NPFLauncher.DefaultOptions);
+
+        for (var i = 0; i < RefreshRetry; i++) {
+            try {
+                var response = X19Extensions.Core1.HttpWrapper
+                    .PostAsync("/authentication/update", HttpUtil.HttpEncrypt(Encoding.UTF8.GetBytes(json)), "application/octet-stream", options => {
+                        // 签名是对**明文**请求体算的（官方 ss.e(Resource, Body) 用的是加密前的 body）
+                        options.AddHeaders(Nirvana.WPFLauncher.Utils.TokenUtil.Compute("/authentication/update", json, account.UserId, account.Token));
+                    })
+                    .GetAwaiter().GetResult();
+
+                var body = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+                var decrypted = HttpUtil.HttpDecrypt(body);
+                var text = decrypted == null ? null : Encoding.UTF8.GetString(decrypted);
+
+                // 只取 entity.token：这个接口的其它字段类型不稳定。
+                // 实测 entity.aid 返回的是**数字**，而 EntityAuthenticationOtp.Aid 是 string，
+                // 套严格实体直接反序列化失败 → 会把服务端已经发出来的新 token 丢掉，
+                // 而旧 token 服务端已经轮换作废，下一次重试就变成 code 22「帐号在另一处登录」。
+                var node = string.IsNullOrWhiteSpace(text) ? null : JsonNode.Parse(text);
+                var token = node?["entity"]?["token"]?.GetValue<string>();
+
+                if (!string.IsNullOrEmpty(token)) {
+                    account.Token = token;
+                    SaveAccount(); // 持久化到 account.json
+                    return true;
+                }
+
+                // code 10 / 22 = 会话失效 / 账号在另一处登录（官方也是这两个码）
+                Log.Warning("续登被拒: code={0}, message={1}, 响应={2}", node?["code"], node?["message"],
+                    string.IsNullOrEmpty(text) ? "(空)" : text[..Math.Min(300, text.Length)]);
+            } catch (Exception e) {
+                Log.Warning("续登失败({0}/{1}): {2}", i + 1, RefreshRetry, e.Message);
+            }
+
+            Thread.Sleep(1000);
+        }
+
+        return false;
+    }
+
+    // 续登请求体 {"entity_id":"..."}
+    private class EntityRefreshRequest {
+        [JsonPropertyName("entity_id")]
+        public required string EntityId { get; set; }
     }
 
     // 删除账号到文件

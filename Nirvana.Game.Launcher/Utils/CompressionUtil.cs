@@ -87,7 +87,7 @@ public static class CompressionUtil {
         }
 
         Log.Warning("使用通用模式解压7z文件中....");
-        Log.Warning("Path: {0}", archivePath);
+        Log.Warning("路径: {0}", archivePath);
 
         await ExtractPublicAsync(archivePath, outPath, progress);
     }

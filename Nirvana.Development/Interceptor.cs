@@ -69,8 +69,8 @@ public class Interceptor {
             channel.Pipeline.AddLast("pre-encoder", new MessageSerializer21Bit());
             channel.Pipeline.AddLast("encoder", new MessageSerializer());
         })).LocalAddress(availablePort);
-        Log.Information("Address: {0}:{1} To: {2}:{3}", currentConfig.LocalAddress, currentConfig.LocalPort, currentConfig.ForwardAddress, currentConfig.ForwardPort);
-        Log.Information("NickName: {0}", currentConfig.NickName);
+        Log.Information("地址: {0}:{1} -> {2}:{3}", currentConfig.LocalAddress, currentConfig.LocalPort, currentConfig.ForwardAddress, currentConfig.ForwardPort);
+        Log.Information("角色名: {0}", currentConfig.NickName);
         interceptor._udpBroadcaster = new UdpBroadcaster(currentConfig.LocalPort, currentConfig);
         serverBootstrap.BindAsync().ContinueWith(task => {
             if (task.IsCompletedSuccessfully) {

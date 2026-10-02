@@ -73,7 +73,7 @@ public sealed class LauncherService : IDisposable {
                 GameProcess?.Kill();
             }
         } catch (Exception ex) {
-            Log.Warning(ex, "Error occurred during shutdown");
+            Log.Warning(ex, "关闭时出错");
         }
 
         return Task.CompletedTask;
@@ -93,7 +93,7 @@ public sealed class LauncherService : IDisposable {
         try {
             await ExecuteLaunchStepsAsync();
         } catch (Exception ex) {
-            Log.Error(ex, "Failed to launch game");
+            Log.Error(ex, "启动游戏失败");
             throw;
         }
 
@@ -177,7 +177,7 @@ public sealed class LauncherService : IDisposable {
     {
         _authLibProtocol = new AuthLibProtocol(_socketPort, JsonSerializer.Serialize(_modList), Entity.GameVersion, Entity.Account);
         _authLibProtocol.Start();
-        Log.Information("[AuthSock] Control connection started on port {0}", _socketPort);
+        Log.Information("[AuthSock] 控制连接已启动，端口 {0}", _socketPort);
     }
 
     private async Task StartGameProcessAsync(CommandService commandService)
@@ -195,14 +195,14 @@ public sealed class LauncherService : IDisposable {
         GameProcess = process;
         GameProcess.EnableRaisingEvents = true;
         SyncProgressBarUtil.ProgressBar.ClearCurrent();
-        Log.Information("Game launched successfully. Game Version: {0}, Process ID: {1}, Role: {2}", Entity.GameVersion, process.Id, Entity.RoleName);
+        Log.Information("游戏启动成功. 游戏版本: {0}, 进程 ID: {1}, 角色: {2}", Entity.GameVersion, process.Id, Entity.RoleName);
         return Task.CompletedTask;
     }
 
     private void HandleFailedLaunch()
     {
         SyncProgressBarUtil.ProgressBar.ClearCurrent();
-        Log.Error("Game launch failed. Game Version: {0}, Role: {1}", Entity.GameVersion, Entity.RoleName);
+        Log.Error("游戏启动失败. 游戏版本: {0}, 角色: {1}", Entity.GameVersion, Entity.RoleName);
     }
 
     private void Dispose(bool disposing)
@@ -220,7 +220,7 @@ public sealed class LauncherService : IDisposable {
                     GameProcess.Dispose();
                 }
             } catch (Exception ex) {
-                Log.Warning(ex, "Error occurred during disposal");
+                Log.Warning(ex, "释放资源时出错");
             }
         }
 

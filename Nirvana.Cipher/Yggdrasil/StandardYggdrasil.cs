@@ -32,7 +32,7 @@ public static class StandardYggdrasil {
             var random = new Random();
             var server = _address[random.Next(_address.Length)];
 
-            Log.Information("StandardYggdrasil: {0}:{1}", server.Ip, server.Port);
+            Log.Information("验证服务器: {0}:{1}", server.Ip, server.Port);
             await client.ConnectAsync(server.Ip, server.Port);
 
             if (!client.Connected) {

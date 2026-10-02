@@ -8,12 +8,12 @@ namespace Nirvana.WPFLauncher.Protocol;
 public static class InterConn {
     private static async Task LoginStart()
     {
-        Log.Debug("LoginStart response: {0}", await X19Extensions.Core1.ApiAsync<string>("/interconn/web/game-play-v2/login-start", "{\"strict_mode\":true}"));
+        Log.Debug("登录开始(login-start) 响应: {0}", await X19Extensions.Core1.ApiAsync<string>("/interconn/web/game-play-v2/login-start", "{\"strict_mode\":true}"));
     }
 
     private static async Task GameStart(string gameId)
     {
-        Log.Debug("GameStart response: {0}", await X19Extensions.Core1.ApiAsync<string>("/interconn/web/game-play-v2/start", new InterConnGameStart {
+        Log.Debug("游戏开始(start) 响应: {0}", await X19Extensions.Core1.ApiAsync<string>("/interconn/web/game-play-v2/start", new InterConnGameStart {
             GameId = gameId,
             ItemList = ["10000"]
         }));

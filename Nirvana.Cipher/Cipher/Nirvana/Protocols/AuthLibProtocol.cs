@@ -38,7 +38,7 @@ public class AuthLibProtocol(int port, string modList, string version, EntityUse
             try {
                 _acceptLoopTask?.Wait(TimeSpan.FromSeconds(5L));
             } catch (Exception ex) {
-                Log.Error("Authentication failed. {0}", ex.Message);
+                Log.Error("验证失败. {0}", ex.Message);
             }
 
             _cts.Dispose();
@@ -64,13 +64,13 @@ public class AuthLibProtocol(int port, string modList, string version, EntityUse
             try {
                 if (_listener != null) {
                     var client = await _listener.AcceptTcpClientAsync(token);
-                    Log.Information("[AuthSock] Accepted: {0}", client.Client.RemoteEndPoint);
+                    Log.Information("[AuthSock] 已接受连接: {0}", client.Client.RemoteEndPoint);
                     await HandleClientAsync(client, token);
                 }
             } catch (ObjectDisposedException) {
                 break;
             } catch (Exception ex2) {
-                Log.Warning("Accept loop error: {0}", ex2.Message);
+                Log.Warning("接收循环出错: {0}", ex2.Message);
                 break;
             }
         }
@@ -119,13 +119,13 @@ public class AuthLibProtocol(int port, string modList, string version, EntityUse
                     }
                 });
             } catch (Exception ex) {
-                Log.Warning("Client handling error: {0}", ex.Message);
+                Log.Warning("处理客户端出错: {0}", ex.Message);
             } finally {
                 try {
                     var bytes = BitConverter.GetBytes(responseCode);
                     await stream.WriteAsync(bytes, token);
                 } catch (Exception ex2) {
-                    Log.Warning("Response writing error: {0}", ex2.Message);
+                    Log.Warning("写响应出错: {0}", ex2.Message);
                 }
             }
         }

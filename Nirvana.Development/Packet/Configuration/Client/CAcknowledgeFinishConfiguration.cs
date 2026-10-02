@@ -11,7 +11,7 @@ public class CAcknowledgeFinishConfiguration : DPacket {
     public override bool HandlePacket(BGameConnection connection)
     {
         connection.State = EnumConnectionState.Play;
-        Log.Information("Finished Configuration.");
+        Log.Information("配置阶段结束");
         return false;
     }
 }

@@ -55,7 +55,7 @@ public static class YggdrasilGenerator {
         var sign = BuildSign(profile, authId, seed).EncodeSha256();
 
         var signSha = Convert.ToHexString(sign);
-        Log.Information("YggdrasilGenerator.Sign: {0}", signSha);
+        Log.Information("Yggdrasil 签名: {0}", signSha);
 
         var client = Rsa.RsaWithPkcs1(PublicKey, signContent, false);
 

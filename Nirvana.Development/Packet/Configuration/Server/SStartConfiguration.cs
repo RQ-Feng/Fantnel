@@ -11,7 +11,7 @@ public class SStartConfiguration : DPacket {
     public override bool HandlePacket(BGameConnection connection)
     {
         connection.State = EnumConnectionState.Configuration;
-        Log.Information("Starting Configuration.");
+        Log.Information("配置阶段开始");
         return false;
     }
 }

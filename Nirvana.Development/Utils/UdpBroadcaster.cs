@@ -41,9 +41,9 @@ public class UdpBroadcaster {
                 await Task.Delay(2000);
             }
         } catch (OperationCanceledException ex) {
-            Log.Error("Broadcasting operation cancelled, {0}", ex.Message);
+            Log.Error("广播已取消, {0}", ex.Message);
         } catch (Exception value) {
-            Log.Error("UDP Broadcast error: {0}", value);
+            Log.Error("UDP 广播出错: {0}", value);
         }
     }
 
@@ -56,7 +56,7 @@ public class UdpBroadcaster {
         } catch (SocketException ex) when (ex.SocketErrorCode == SocketError.HostUnreachable) {
             await Task.Delay(5000);
         } catch (Exception value) {
-            Log.Error("UDP Send failed: {0}", value);
+            Log.Error("UDP 发送失败: {0}", value);
         }
     }
 

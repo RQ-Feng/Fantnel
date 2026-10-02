@@ -47,7 +47,7 @@ public static class InstallerService {
             var fileName = Path.GetFileName(filePath);
             if (!fileName.EndsWith(".jar")) {
                 var path = Path.Combine(PathUtil.GameBaseMcPath, "versions", gameVersionFromEnum, fileName);
-                Log.Information("Installed {0} to {1}", filePath, path);
+                Log.Information("已安装 {0} 到 {1}", filePath, path);
                 File.Copy(filePath, path, true);
                 continue;
             }
@@ -57,14 +57,14 @@ public static class InstallerService {
                 var javaFileName = Path.GetFileName(javaPath);
                 if (fileName.Equals(javaFileName)) {
                     flag = false;
-                    Log.Information("Installed {0} to {1}", filePath, javaPath);
+                    Log.Information("已安装 {0} 到 {1}", filePath, javaPath);
                     File.Copy(filePath, javaPath, true);
                     break;
                 }
             }
 
             if (flag) {
-                Log.Warning("Failed to install {0}", fileName);
+                Log.Warning("安装失败 {0}", fileName);
             }
         }
     }
@@ -202,7 +202,7 @@ public static class InstallerService {
                 await File.WriteAllTextAsync(archive, JsonSerializer.Serialize(serverModsList));
             }
         } catch (Exception) {
-            Log.Warning("Download game Component failed");
+            Log.Warning("下载游戏组件失败");
         }
 
         SyncProgressBarUtil.ProgressBar.ClearCurrent();

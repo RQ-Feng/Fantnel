@@ -32,9 +32,9 @@ public class SPacketLoginSuccess : FPacket {
     public override bool HandlePacket(BGameConnection connection)
     {
         if (ProtocolVersion > EnumProtocolVersion.V1180) {
-            Log.Information("Joined: {0}[{1}]", _username, new Guid(_guid, true));
+            Log.Information("已登录: {0}[{1}]", _username, new Guid(_guid, true));
         } else {
-            Log.Information("Joined: {0}[{1}]", _username, _uuid);
+            Log.Information("已登录: {0}[{1}]", _username, _uuid);
         }
 
         if (ProtocolVersion > EnumProtocolVersion.V1200) {

@@ -58,7 +58,7 @@ public class CommandService {
             if (minecraft != null) {
                 _minecraft = BuildJarListBase(minecraft);
             } else {
-                Log.Error("BmclApi returned null, version: {0}", _version);
+                Log.Error("BmclApi 返回为空, 版本: {0}", _version);
             }
         }
         
@@ -104,7 +104,7 @@ public class CommandService {
 
         // 解压 natives 库
         foreach (var item in _minecraft.Where(item => item.IsNative())) {
-            Log.Warning("Fix Native Extract {0}", item.GetPath1());
+            Log.Warning("修正 Native 解压目录 {0}", item.GetPath1());
             if (item.DownloadAuto()) {
                 await CompressionUtil.ExtractAsync(item.GetPath(), _nativesPath);
             }
@@ -118,7 +118,7 @@ public class CommandService {
             var runtimePath = Path.Combine(_nativesPath, "runtime");
             FileUtil.CopyFileSafe(path, Path.Combine(runtimePath, "api-ms-win-crt-utility-l1-1-1.dll"));
         } catch (Exception ex) {
-            Log.Error("Failed to install native dll: {0}", ex);
+            Log.Error("安装 native dll 失败: {0}", ex);
         }
     }
 
@@ -295,7 +295,7 @@ public class CommandService {
 
                 var parts = name.Split(':');
                 if (parts.Length is < 3 or > 4) {
-                    Log.Warning("Invalid name format: {0}", name);
+                    Log.Warning("名称格式不合法: {0}", name);
                     continue;
                 }
 
@@ -481,19 +481,19 @@ public class CommandService {
             fullPath = fullPath1 + PathUtil.PathSeparator; // 修复 linux/mac 引用出错
 
             if (!File.Exists(fullPath1)) {
-                Log.Error("File not found: {0}", fullPath1);
+                Log.Error("找不到文件: {0}", fullPath1);
                 continue;
             }
 
             // 是 native/lwjgl 文件，不用添加
             if (_minecraft.Count > 0) {
                 if (EntityJavaFile.Contains("-natives", filePath)) {
-                    Log.Warning("Fix Native Continue {0}", filePath);
+                    Log.Warning("继续修正 Native {0}", filePath);
                     continue;
                 }
 
                 if (EntityJavaFile.Contains("org/lwjgl/", filePath)) {
-                    Log.Warning("Fix Lwjgl Continue {0}", filePath);
+                    Log.Warning("继续修正 Lwjgl {0}", filePath);
                     continue;
                 }
             }
@@ -507,7 +507,7 @@ public class CommandService {
 
         // 修复 lwjgl
         foreach (var item in _minecraft.Where(item => item.StartsWith("org/lwjgl/"))) {
-            Log.Warning("Fix Lwjgl Auto {0}", item.GetPath1());
+            Log.Warning("自动修正 Lwjgl {0}", item.GetPath1());
             if (item.DownloadAuto()) {
                 combinedPaths.Append(item.GetPathSeparator());
             }

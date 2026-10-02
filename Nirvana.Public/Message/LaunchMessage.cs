@@ -167,7 +167,7 @@ public static class LaunchMessage {
         if (File.Exists(md5File)) {
             var fileMd5 = await File.ReadAllTextAsync(md5File);
             if (fileMd5 == response.Data.Md5) {
-                Log.Information("Java Path: {0}", javaPath);
+                Log.Information("Java 路径: {0}", javaPath);
                 return;
             }
         }
@@ -176,6 +176,6 @@ public static class LaunchMessage {
         await DownloadUtil.DownloadAsync(response.Data.Url, filePath, javaName);
         await CompressionUtil.ExtractAsync(filePath, javaPath, javaName);
         await File.WriteAllTextAsync(md5File, response.Data.Md5);
-        Log.Information("Java Path: {0}", javaPath);
+        Log.Information("Java 路径: {0}", javaPath);
     }
 }

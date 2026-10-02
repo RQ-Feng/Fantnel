@@ -16,6 +16,6 @@ public class HeypixelProtocol {
 
     public static void Init()
     {
-        Log.Information("[Heypixel] Initializing.");
+        Log.Information("[Heypixel] 正在初始化...");
     }
 }

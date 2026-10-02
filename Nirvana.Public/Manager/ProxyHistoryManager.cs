@@ -71,6 +71,11 @@ public static class ProxyHistoryManager {
     {
         try {
             var json = NirvanaConfig.GetValue(ConfigKey, () => "[]");
+            // 配置项默认值是空字符串（未写过历史时），空/空白直接当空列表，不要报错
+            if (string.IsNullOrWhiteSpace(json)) {
+                return [];
+            }
+
             return JsonSerializer.Deserialize<List<EntityProxyHistory>>(json) ?? [];
         } catch (Exception e) {
             Log.Warning("读取代理历史失败 : {0}", e.Message);

@@ -34,7 +34,7 @@ public class MessageDeserializer21Bit : ByteToMessageDecoder {
 
                 break;
             } catch (Exception exception) {
-                Log.Error(exception, "Failed to decode message.");
+                Log.Error(exception, "解码消息失败");
                 break;
             }
         }

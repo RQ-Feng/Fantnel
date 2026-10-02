@@ -66,11 +66,11 @@ public static class PluginManager {
                     Plugins[item.Key.Id] = pluginState;
                     return pluginState;
                 } catch (MissingMemberException) {
-                    Log.Warning("Plugin {0} is missing plugin attribute", filePath);
+                    Log.Warning("插件 {0} 缺少插件特性(RegisterPacket)", filePath);
                 }
             }
         } catch (Exception exception) {
-            Log.Error(exception, "Failed Load Plugin: {0}", filePath);
+            Log.Error(exception, "插件加载失败: {0}", filePath);
             DeletePluginByPath(filePath);
         }
 

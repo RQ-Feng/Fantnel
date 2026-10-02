@@ -18,7 +18,7 @@ public static class NettyExtensions {
             var b = (sbyte)t;
             num |= (t & 0x7F) << (num2++ * 7);
             if (num2 > 5) {
-                throw new Exception("VarInt too big");
+                throw new Exception("VarInt 过长");
             }
 
             if ((b & 0x80) != 128) {
@@ -90,7 +90,7 @@ public static class NettyExtensions {
 
                 num2 += 7;
                 if (num2 >= 32) {
-                    throw new Exception("VarInt is too big");
+                    throw new Exception("VarInt 过长");
                 }
             }
 

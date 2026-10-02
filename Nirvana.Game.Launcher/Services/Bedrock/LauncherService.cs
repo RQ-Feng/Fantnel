@@ -62,7 +62,7 @@ public sealed class LauncherService : IDisposable {
                 _gameProcess = null;
             }
         } catch (Exception ex) {
-            Log.Warning(ex, "Error disposing game process for {0}", Entity.GameId);
+            Log.Warning(ex, "释放游戏进程时出错，游戏: {0}", Entity.GameId);
         }
     }
 
@@ -80,44 +80,44 @@ public sealed class LauncherService : IDisposable {
                 }
             }
         } catch (OperationCanceledException) {
-            UpdateProgress(100, "Launch cancelled");
+            UpdateProgress(100, "启动已取消");
         } catch (Exception ex2) {
-            Log.Error(ex2, "Error while launching game for {0}", Entity.GameId);
-            UpdateProgress(100, "Launch failed");
+            Log.Error(ex2, "启动游戏失败，游戏: {0}", Entity.GameId);
+            UpdateProgress(100, "启动失败");
         }
     }
 
     private async Task DownloadGameResourcesAsync()
     {
-        UpdateProgress(5, "Installing game resources");
+        UpdateProgress(5, "正在安装游戏资源");
         if (!await InstallerService.DownloadMinecraftAsync().ConfigureAwait(false)) {
-            throw new InvalidOperationException("Failed to download Minecraft resources");
+            throw new InvalidOperationException("下载 Minecraft 资源失败");
         }
     }
 
     private Task<int> LaunchProxyAsync()
     {
-        UpdateProgress(60, "Launching proxy");
+        UpdateProgress(60, "正在启动代理");
         var availablePort = Tools.GetUnusedPort();
         return Task.FromResult(availablePort);
     }
 
     private Task StartGameProcessAsync(int port)
     {
-        UpdateProgress(70, "Launching game process");
+        UpdateProgress(70, "正在启动游戏进程");
         var launchPath = GetLaunchPath();
         ValidateLaunchPath(launchPath);
         ConfigService.GenerateLaunchConfig(Entity.SkinPath, Entity.RoleName, Entity.GameId, port);
         var argumentsPath = Path.Combine(PathUtil.CppGamePath, "launch.cppconfig");
         var process = CommandService.StartGame(launchPath, argumentsPath);
         if (process == null) {
-            Log.Error("[Launch] Game Failed For LaunchType: {0}, Role: {1}", Entity.LaunchType, Entity.RoleName);
-            throw new InvalidOperationException("Failed to start game process");
+            Log.Error("[启动] 游戏启动失败. 启动类型: {0}, 角色: {1}", Entity.LaunchType, Entity.RoleName);
+            throw new InvalidOperationException("启动游戏进程失败");
         }
 
         SetupGameProcess(process);
-        UpdateProgress(100, "Running");
-        Log.Information("[Launch] Game Success. LaunchType: {0}, ProcessID: {1}, Role: {2}", Entity.LaunchType, process.Id, Entity.RoleName);
+        UpdateProgress(100, "运行中");
+        Log.Information("[启动] 游戏启动成功. 启动类型: {0}, 进程 ID: {1}, 角色: {2}", Entity.LaunchType, process.Id, Entity.RoleName);
         return Task.CompletedTask;
     }
 
@@ -131,7 +131,7 @@ public sealed class LauncherService : IDisposable {
     private static void ValidateLaunchPath(string launchPath)
     {
         if (!File.Exists(launchPath))
-            throw new FileNotFoundException("Executable not found at " + launchPath, launchPath);
+            throw new FileNotFoundException("找不到可执行文件: " + launchPath, launchPath);
     }
 
     private void SetupGameProcess(Process process)
@@ -146,7 +146,7 @@ public sealed class LauncherService : IDisposable {
         try {
             Exited?.Invoke(Identifier);
         } catch (Exception ex) {
-            Log.Warning(ex, "Error in game process exit handler for {0}", Entity.GameId);
+            Log.Warning(ex, "游戏进程退出处理出错，游戏: {0}", Entity.GameId);
         }
     }
 
@@ -167,7 +167,7 @@ public sealed class LauncherService : IDisposable {
                 SyncProgressBarUtil.ProgressBar.ClearCurrent();
             }
         } catch (Exception ex) {
-            Log.Warning(ex, "Error reporting progress for {0}", Entity.GameId);
+            Log.Warning(ex, "上报启动进度失败，游戏: {0}", Entity.GameId);
         }
     }
 

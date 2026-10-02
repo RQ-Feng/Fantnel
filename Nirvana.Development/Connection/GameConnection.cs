@@ -53,7 +53,7 @@ public class GameConnection : BGameConnection {
                     return channel.GetAwaiter().GetResult();
                 }
 
-                Log.Error(channel.Exception, "Failed to connect to remote server {0}:{1}", Config.ForwardAddress, Config.ForwardPort);
+                Log.Error(channel.Exception, "连接远程服务器失败 {0}:{1}", Config.ForwardAddress, Config.ForwardPort);
                 return null;
             });
             ServerChannel = serverChannel.GetAwaiter().GetResult();
@@ -81,7 +81,7 @@ public class GameConnection : BGameConnection {
     public void Shutdown()
     {
         EventManager.TriggerEvent<IEventConnectionClosed>(eventClosed => { eventClosed.OnConnectionClosed(); }, ProtocolVersion);
-        Log.Debug("Shutting down connection...");
+        Log.Debug("正在关闭连接...");
         ClientChannel?.CloseAsync();
         ServerChannel?.CloseAsync();
         _workerGroup?.ShutdownGracefullyAsync();
@@ -105,7 +105,7 @@ public class GameConnection : BGameConnection {
                     iPacket.ProtocolVersion = ProtocolVersion;
                     iPacket.ReadFromBuffer(this, buffer);
                 } catch (Exception exception) {
-                    Log.Error(exception, "Cannot read packet from buffer, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
+                    Log.Error(exception, "读取包体失败: 方向={0}, Id={1}, 协议版本={2}", direction.ToDisplay(), id, ProtocolVersion);
                     throw new PacketParseException(id, exception);
                 }
 
@@ -114,7 +114,7 @@ public class GameConnection : BGameConnection {
                         return true;
                     }
                 } catch (Exception exception) {
-                    Log.Error(exception, "Cannot handle packet, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
+                    Log.Error(exception, "处理包失败: 方向={0}, Id={1}, 协议版本={2}", direction.ToDisplay(), id, ProtocolVersion);
                     throw;
                 }
 
@@ -125,7 +125,7 @@ public class GameConnection : BGameConnection {
                     buffer.MarkReaderIndex();
                     buffer.ReadVarIntFromBuffer();
                 } catch (Exception exception) {
-                    Log.Error(exception, "Cannot write packet to buffer, direction: {0}, Id: {1}, ProtocolVersion: {2}", direction, id, ProtocolVersion);
+                    Log.Error(exception, "写回包体失败: 方向={0}, Id={1}, 协议版本={2}", direction.ToDisplay(), id, ProtocolVersion);
                     throw;
                 }
 
@@ -135,8 +135,8 @@ public class GameConnection : BGameConnection {
             // 一个畸形/不认识的包不应直接打断整条连接：
             // 回滚 readerIndex 后原样透传给对端，同时把帧内容打出来便于定位。
             buffer.ResetReaderIndex();
-            Log.Warning("包体解析失败，已原样透传: direction={0}, Id={1}, ProtocolVersion={2}, 帧长={3}, 内容={4}",
-                direction, id, ProtocolVersion, buffer.ReadableBytes, HexDump(buffer));
+            Log.Warning("包体解析失败，已原样透传: 方向={0}, Id={1}, 协议版本={2}, 帧长={3}, 内容={4}",
+                direction.ToDisplay(), id, ProtocolVersion, buffer.ReadableBytes, HexDump(buffer));
             onRedirect(buffer);
             return;
         }

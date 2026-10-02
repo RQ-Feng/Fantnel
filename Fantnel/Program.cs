@@ -121,7 +121,7 @@ public static class Program {
             // Fantnel 初始化
             InitProgram.NelInit1(args);
             Log.Information("{0}", resourcesPath);
-            Log.Information("Java: {0}", PathUtil.JavaPath);
+            Log.Information("Java 路径: {0}", PathUtil.JavaPath);
         });
 
         app.Run();

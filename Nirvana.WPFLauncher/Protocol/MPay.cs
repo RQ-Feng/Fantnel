@@ -118,7 +118,7 @@ public class MPay : IDisposable {
         var response = await _service.PostAsync("/mpay/api/users/login/mobile/get_sms", queryBuilder.BuildQuery(), "application/x-www-form-urlencoded");
         var propertyValue = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode) {
-            Log.Error("Failed to send sms code, response: {Json}", propertyValue);
+            Log.Error("发送短信验证码失败, 响应: {Json}", propertyValue);
         }
 
         return response.IsSuccessStatusCode;
@@ -137,7 +137,7 @@ public class MPay : IDisposable {
             return JsonSerializer.Deserialize<EntitySmsTicket>(text);
         }
 
-        Log.Error("Failed to send sms code, response: {Json}", text);
+        Log.Error("发送短信验证码失败, 响应: {Json}", text);
         return null;
     }
 
@@ -154,7 +154,7 @@ public class MPay : IDisposable {
             return JsonSerializer.Deserialize<EntityMPayUserResponse>(text2);
         }
 
-        Log.Error("Failed to finish sms code, response: {Json}", text2);
+        Log.Error("完成短信验证码失败, 响应: {Json}", text2);
         return null;
     }
 

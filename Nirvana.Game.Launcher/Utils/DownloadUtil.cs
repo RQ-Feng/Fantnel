@@ -11,7 +11,7 @@ public static class DownloadUtil {
     {
         try {
             if (url.Contains("netease.com")) {
-                Log.Information("Downloading \"{0}\" from {1}", destinationPath, url);
+                Log.Information("正在下载 \"{0}\" 来源 {1}", destinationPath, url);
             }
 
             var tcs = new TaskCompletionSource<bool>();
@@ -40,10 +40,10 @@ public static class DownloadUtil {
 
             downloader.DownloadFileCompleted += (_, e) => {
                 if (e.Error != null) {
-                    Log.Error("Download failed for {0}\n{1}", url, e.Error);
+                    Log.Error("下载失败: {0}\n{1}", url, e.Error);
                     tcs.TrySetException(e.Error);
                 } else if (e.Cancelled) {
-                    Log.Information("Download canceled: {0}", url);
+                    Log.Information("下载已取消: {0}", url);
                     tcs.TrySetCanceled();
                 } else {
                     tcs.TrySetResult(true);
@@ -53,10 +53,10 @@ public static class DownloadUtil {
             await downloader.DownloadFileTaskAsync(url, destinationPath);
             return await tcs.Task;
         } catch (TaskCanceledException) {
-            Log.Information("Download canceled: {0}", url);
+            Log.Information("下载已取消: {0}", url);
             throw;
         } catch (Exception ex) {
-            Log.Error("Download failed for {0}\n{1}", url, ex);
+            Log.Error("下载失败: {0}\n{1}", url, ex);
             throw;
         }
     }

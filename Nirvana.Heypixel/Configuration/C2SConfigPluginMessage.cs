@@ -33,7 +33,7 @@ public class C2SConfigPluginMessage : BPacket {
         //     return true;
         // } 
         if (_identifier == "minecraft:brand") {
-            Log.Information("[Heypixel] Minecraft");
+            Log.Information("[Heypixel] Minecraft 配置消息");
             ArgumentNullException.ThrowIfNull(_payload);
             _payload = Convert.FromBase64String("BWZvcmdl");
         }

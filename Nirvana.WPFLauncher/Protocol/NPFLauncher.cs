@@ -209,7 +209,7 @@ public static class NPFLauncher {
             await Sdk.AuthSession(cookie.Json);
         }
 
-        Log.Information("Login with Cookie...");
+        Log.Information("使用 Cookie 登录...");
         var otp = await LoginOtpAsync(cookie);
         if (otp == null) {
             throw new ErrorCodeException(ErrorCode.LoginError);

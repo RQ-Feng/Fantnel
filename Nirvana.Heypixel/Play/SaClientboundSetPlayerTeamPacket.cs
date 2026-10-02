@@ -25,7 +25,7 @@ public class SaClientboundSetPlayerTeamPacket : FPacket {
         }
 
         if (_teamName.StartsWith("collideRule_")) {
-            Log.Information("[Heypixel] Team: {0}", _teamName);
+            Log.Information("[Heypixel] 队伍: {0}", _teamName);
             return true;
         }
 

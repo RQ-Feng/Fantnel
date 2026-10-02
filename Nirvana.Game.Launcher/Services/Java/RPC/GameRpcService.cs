@@ -61,7 +61,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             _mMcControlListener = new TcpListener(IPAddress.Loopback, port);
             _mMcControlListener.Start();
             _ = Task.Run(ListenControlConnect);
-            Log.Information("[RPC] Control connection started on port {0}", port);
+            Log.Information("[RPC] 控制连接已启动，端口 {0}", port);
         } catch (Exception exception) {
             if (tryTimes > 0) {
                 StartControlConnection(tryTimes - 1);
@@ -70,7 +70,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             }
 
             Console.WriteLine();
-            Log.Error(exception, "[RPC] Failed to start control connection after retries");
+            Log.Error(exception, "[RPC] 重试后仍无法启动控制连接");
         }
     }
 
@@ -80,7 +80,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
         _mMcControlListener?.Stop();
         _mMcControlListener = null;
         CloseGameCleaning();
-        Log.Information("[RPC] Control connection closed");
+        Log.Information("[RPC] 控制连接已关闭");
     }
 
     private void HandleAuthenticationNewVersion(byte[] data)
@@ -91,7 +91,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
                 SendControlData(array);
             }
 
-            Log.Information("[RPC] Sent new-version authentication to {0}:{1} | User: {2} | Role: {3} | Protocol: {4}", launchGame.ServerIp, launchGame.ServerPort, launchGame.Account.UserId, launchGame.RoleName, gameVersion);
+            Log.Information("[RPC] 已发送新版认证 -> {0}:{1} | 用户: {2} | 角色: {3} | 协议: {4}", launchGame.ServerIp, launchGame.ServerPort, launchGame.Account.UserId, launchGame.RoleName, gameVersion);
         }
     }
 
@@ -102,7 +102,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             SendControlData(array);
         }
 
-        Log.Information("[RPC] Sent authentication to {0}:{1} | User: {2} | Role: {3} | Protocol: {4}", launchGame.ServerIp, launchGame.ServerPort, launchGame.Account.UserId, launchGame.RoleName, gameVersion);
+        Log.Information("[RPC] 已发送认证 -> {0}:{1} | 用户: {2} | 角色: {3} | 协议: {4}", launchGame.ServerIp, launchGame.ServerPort, launchGame.Account.UserId, launchGame.RoleName, gameVersion);
     }
 
     private void OnHeartBeat(byte[] data)
@@ -112,17 +112,17 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             SendControlData(array);
         }
 
-        Log.Information("[RPC] Heartbeat {0} sent", "i'am wpflauncher");
+        Log.Information("[RPC] 已发送心跳 ({0})", "i'am wpflauncher");
     }
 
     private static void OnPCycEntityCheck(byte[] data)
     {
-        Log.Information("[RPC] PCyc Entity {0} sent", "[]");
+        Log.Information("[RPC] 已发送 PCyc 实体 ({0})", "[]");
     }
 
     private void HandlePlayerSkin(byte[] content)
     {
-        Log.Information("[RPC] Event received -> {0}", "Send Player Skin");
+        Log.Information("[RPC] 收到事件 -> 发送玩家皮肤");
         var entityOtherEnterWorldMsg = new EntityOtherEnterWorldMsg();
         new SimpleUnpack(content).Unpack(ref entityOtherEnterWorldMsg);
         Task.Run(() => ProcessPlayerSkin(entityOtherEnterWorldMsg));
@@ -158,19 +158,19 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
                         }
                     }
                 } catch (Exception exception) {
-                    Log.Error(exception, "[RPC] Failed to handle skin for player {Name}", msg.Name);
+                    Log.Error(exception, "[RPC] 处理玩家 {Name} 的皮肤失败", msg.Name);
                     try {
                         if (File.Exists(tempPath)) {
                             File.Delete(tempPath);
                         }
                     } catch {
-                        Log.Error(exception, "[RPC] Failed to delete temp file {Path}", filePath);
+                        Log.Error(exception, "[RPC] 删除临时文件失败 {Path}", filePath);
                     }
                 }
             }
         }
 
-        Log.Information("[RPC] Sending skin data for {0}: {1}", msg.Name, filePath);
+        Log.Information("[RPC] 正在发送角色皮肤数据 {0}: {1}", msg.Name, filePath);
         var array = SimplePack.Pack((ushort)520, msg.Name, filePath, string.Empty, skinMode);
         if (array != null) {
             SendControlData(array);
@@ -179,7 +179,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
 
     private static void HandleLoginGame(byte[] data)
     {
-        Log.Information("[RPC] Event received -> {0}", "Login Game");
+        Log.Information("[RPC] 收到事件 -> 登录游戏");
     }
 
     private void HandleMsgFilterCheck(byte[] data)
@@ -189,7 +189,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             SendControlData(array);
         }
 
-        Log.Information("[RPC] Event received -> {0}", "Filter Message Check");
+        Log.Information("[RPC] 收到事件 -> 过滤消息检查");
     }
 
     private void OnCheckPlayerMsg(byte[] data)
@@ -203,7 +203,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             }
         }
 
-        Log.Information("[RPC] Event received -> {0} with data {1}", "Player Message Check", content?.Message);
+        Log.Information("[RPC] 收到事件 -> 玩家消息检查，数据 {0}", content?.Message);
     }
 
     private void ListenControlConnect()
@@ -220,10 +220,10 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
                 _writer = new BinaryWriter(stream);
                 SendCacheControlData();
                 _ = Task.Run(OnRecvControlData);
-                Log.Information("[RPC] Accepted: {0}", tcpClient.Client.RemoteEndPoint);
+                Log.Information("[RPC] 已接受连接: {0}", tcpClient.Client.RemoteEndPoint);
             }
         } catch {
-            Log.Error("[RPC] Failed to listen control connection");
+            Log.Error("[RPC] 监听控制连接失败");
         }
     }
 
@@ -239,7 +239,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             _writer?.Write(buffer);
             _writer?.Flush();
         } catch (Exception exception) {
-            Log.Error(exception, "[RPC] Failed to send control data");
+            Log.Error(exception, "[RPC] 发送控制数据失败");
         }
     }
 
@@ -257,7 +257,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
             } catch (IOException) {
                 break;
             } catch (Exception exception) {
-                Log.Error(exception, "[RPC] Error receiving control data");
+                Log.Error(exception, "[RPC] 接收控制数据出错");
                 if (!_mIsNormalExit) {
                     CloseGameCleaning();
                 }
@@ -273,7 +273,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
         var parameters = message.Skip(2).ToArray();
         if (!_mIsLaunchIdxReady && num == 261) {
             _mIsLaunchIdxReady = true;
-            Log.Information("[RPC] Launch index ready, executed ready actions");
+            Log.Information("[RPC] 启动索引就绪，已执行就绪动作");
         }
 
         _mSocketCallbackFuc.InvokeCallback(num, parameters);
@@ -282,7 +282,7 @@ public class GameRpcService(int port, EntityLaunchGame launchGame, EnumGameVersi
     private void CloseGameCleaning()
     {
         _mIsLaunchIdxReady = false;
-        Log.Information("[RPC] Cleaned up game resources");
+        Log.Information("[RPC] 已清理游戏资源");
     }
 
     private void SendCacheControlData()
