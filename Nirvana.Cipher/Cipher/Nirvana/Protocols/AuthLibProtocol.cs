@@ -92,6 +92,7 @@ public class AuthLibProtocol(int port, string modList, string version, EntityUse
         using (client) {
             await using var stream = client.GetStream();
             var responseCode = 1u;
+            string? failureReason = null;
             try {
                 var lenBuf = new byte[4];
 
@@ -116,14 +117,25 @@ public class AuthLibProtocol(int port, string modList, string version, EntityUse
                 await NetEaseConnection.CreateAuthenticatorAsync(serverId, gameId, version, modList, account, success => {
                     if (success) {
                         responseCode = 0u;
+                    } else {
+                        failureReason = NetEaseConnection.LastFailureReason;
                     }
                 });
             } catch (Exception ex) {
+                failureReason = $"网易认证失败：{ex.Message}";
                 Log.Warning("处理客户端出错: {0}", ex.Message);
             } finally {
                 try {
                     var bytes = BitConverter.GetBytes(responseCode);
                     await stream.WriteAsync(bytes, token);
+
+                    // 失败时把原因一并回给客户端，客户端会把它显示在「无法连接至服务器」界面上。
+                    // 只回状态码客户端会一直停在 Logging in...，玩家看不到任何原因。
+                    if (responseCode != 0u && !string.IsNullOrEmpty(failureReason)) {
+                        var reasonBytes = Encoding.UTF8.GetBytes(failureReason);
+                        await stream.WriteAsync(BitConverter.GetBytes(reasonBytes.Length), token);
+                        await stream.WriteAsync(reasonBytes, token);
+                    }
                 } catch (Exception ex2) {
                     Log.Warning("写响应出错: {0}", ex2.Message);
                 }

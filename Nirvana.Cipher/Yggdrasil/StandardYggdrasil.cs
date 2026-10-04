@@ -17,12 +17,26 @@ public static class StandardYggdrasil {
 
     public static async Task InitializationAsync()
     {
-        _address = await RandomAuthServer();
+        try {
+            _address = await RandomAuthServer();
+            Log.Information("[Yggdrasil] 认证服务器列表加载完成，共 {0} 个节点", _address.Length);
+        } catch (Exception e) {
+            // 启动时是无返回值的一发请求，失败不能静默：否则 _address 永远是 null，
+            // 整场会话都只能走涅槃云回退认证。
+            _address = null;
+            Log.Error("[Yggdrasil] 认证服务器列表加载失败: {0}: {1}", e.GetType().Name, e.Message);
+        }
     }
 
     public static async Task JoinServerAsync(GameProfile profile, string serverId, bool login = false)
     {
-        if (_address == null) {
+        if (_address is not { Length: > 0 }) {
+            // 启动那次可能碰上网络抖动，这里惰性重试一次，别一失败就永久失效
+            Log.Warning("[Yggdrasil] 认证服务器列表为空，尝试重新获取...");
+            await InitializationAsync();
+        }
+
+        if (_address is not { Length: > 0 }) {
             throw new Exception("Not StandardYggdrasil Servers Found.");
         }
 

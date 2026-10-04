@@ -52,6 +52,9 @@ public class InterceptorManager {
     {
         NetEaseConnection.CreateAuthenticator(serverId, config.GameId, _versionName, _mods, _availableUser, success => {
             if (!success) {
+                // 认证失败必须让玩家看得见：先下发带原因的断连包，
+                // 客户端会弹出「无法连接至服务器」并显示这句话，而不是一直停在 Logging in...
+                Interceptor.DisconnectClients(NetEaseConnection.LastFailureReason ?? "网易认证失败，请尝试重新启动游戏客户端");
                 try {
                     AccountMessage.AutoUpdateAccount(_availableUser, () => { ActiveGameAndProxies.CloseProxy(Interceptor); });
                 } catch (Exception e) {

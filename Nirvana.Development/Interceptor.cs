@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using DotNetty.Buffers;
 using DotNetty.Transport.Bootstrapping;
 using DotNetty.Transport.Channels;
 using DotNetty.Transport.Channels.Sockets;
 using Nirvana.Common.Entities.Login;
 using Nirvana.Development.Analysis;
+using Nirvana.Development.Connection;
 using Nirvana.Development.Handlers;
 using Nirvana.Development.Manager;
 using Nirvana.Development.Utils;
@@ -17,6 +19,10 @@ namespace Nirvana.Development;
 
 public class Interceptor {
     private IChannel? _channel;
+
+    // 当前已连接的客户端：认证失败等要主动发断连包时需要用到
+    private readonly ConcurrentDictionary<GameConnection, byte> _connections = new();
+
     private UdpBroadcaster? _udpBroadcaster;
 
     public required MultithreadEventLoopGroup AcceptorGroup;
@@ -65,7 +71,7 @@ public class Interceptor {
         serverBootstrap.Option(ChannelOption.ConnectTimeout, TimeSpan.FromSeconds(10.0)); // 连接超时时间
         serverBootstrap.ChildHandler(new ActionChannelInitializer<IChannel>(channel => {
             channel.Pipeline.AddLast("splitter", new MessageDeserializer21Bit());
-            channel.Pipeline.AddLast("handler", new ServerHandler(currentConfig));
+            channel.Pipeline.AddLast("handler", new ServerHandler(currentConfig, interceptor));
             channel.Pipeline.AddLast("pre-encoder", new MessageSerializer21Bit());
             channel.Pipeline.AddLast("encoder", new MessageSerializer());
         })).LocalAddress(availablePort);
@@ -79,6 +85,32 @@ public class Interceptor {
             }
         }).ContinueWith(_ => interceptor._udpBroadcaster.StartBroadcastingAsync());
         return interceptor;
+    }
+
+    public void RegisterConnection(GameConnection connection)
+    {
+        _connections.TryAdd(connection, 0);
+    }
+
+    public void UnregisterConnection(GameConnection connection)
+    {
+        _connections.TryRemove(connection, out _);
+    }
+
+    /**
+     * 认证失败等致命错误：把所有已连接的客户端断开，并把原因显示在客户端的断连界面上。
+     * 不发这个包的话，客户端只会一直停在 Logging in...
+     */
+    public void DisconnectClients(string reason)
+    {
+        if (_connections.IsEmpty) {
+            return;
+        }
+
+        Log.Warning("正在断开 {0} 个客户端，原因: {1}", _connections.Count, reason);
+        foreach (var connection in _connections.Keys) {
+            connection.SendLoginDisconnect(reason);
+        }
     }
 
     public void ShutdownAsync()

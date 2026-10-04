@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNetty.Buffers;
@@ -9,6 +10,7 @@ using DotNetty.Transport.Channels.Sockets;
 using Nirvana.Development.Analysis;
 using Nirvana.Development.Handlers;
 using Nirvana.Development.Manager;
+using Nirvana.Development.Packet.Login.Server;
 using Nirvana.DevPlugin;
 using Nirvana.DevPlugin.Enums;
 using Nirvana.DevPlugin.Events.Event;
@@ -76,6 +78,23 @@ public class GameConnection : BGameConnection {
     public void OnClientReceived(IByteBuffer buffer)
     {
         HandlePacketReceived(buffer, EnumPacketDirection.ServerBound, data => { ServerChannel?.WriteAndFlushAsync(data); });
+    }
+
+    /**
+     * 主动给客户端下发登录阶段的断开包，让玩家在客户端界面上看到原因。
+     * 认证失败这类「代理侧」问题必须主动断连，否则客户端会一直停在 Logging in...
+     */
+    public void SendLoginDisconnect(string reason)
+    {
+        try {
+            var packet = new SPacketDisconnect(JsonSerializer.Serialize(new { text = reason })) {
+                PacketId = SPacketDisconnect.RegisterPacket.PacketId,
+                ProtocolVersion = ProtocolVersion
+            };
+            ClientChannel?.WriteAndFlushAsync(packet);
+        } catch (Exception e) {
+            Log.Error(e, "下发断开包失败");
+        }
     }
 
     public void Shutdown()

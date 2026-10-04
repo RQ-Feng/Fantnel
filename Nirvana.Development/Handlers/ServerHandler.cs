@@ -6,7 +6,7 @@ using Nirvana.DevPlugin.Entities;
 
 namespace Nirvana.Development.Handlers;
 
-public class ServerHandler(InterceptorConfig config) : ChannelHandlerAdapter {
+public class ServerHandler(InterceptorConfig config, Interceptor? interceptor = null) : ChannelHandlerAdapter {
     public override void ChannelActive(IChannelHandlerContext context)
     {
         var channel = context.Channel;
@@ -15,6 +15,7 @@ public class ServerHandler(InterceptorConfig config) : ChannelHandlerAdapter {
             ClientChannel = channel
         };
         channel.GetAttribute(ChannelAttribute.Connection).Set(gameConnection);
+        interceptor?.RegisterConnection(gameConnection);
         gameConnection.Prepare();
     }
 
@@ -27,6 +28,8 @@ public class ServerHandler(InterceptorConfig config) : ChannelHandlerAdapter {
 
     public override void ChannelInactive(IChannelHandlerContext context)
     {
-        context.Channel.GetAttribute(ChannelAttribute.Connection).Get().Shutdown();
+        var gameConnection = context.Channel.GetAttribute(ChannelAttribute.Connection).Get();
+        interceptor?.UnregisterConnection(gameConnection);
+        gameConnection.Shutdown();
     }
 }

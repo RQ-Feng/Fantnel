@@ -173,8 +173,12 @@ public static class InitProgram {
             X19.CrcSalt = InfoManager.FantnelInfo.CrcSalt;
         }
 
-        if (X19.CrcSalt != null && X19.CrcSalt.Length > 6 ) {
+        if (X19.CrcSalt is { Length: > 6 }) {
             Log.Information("CRC Salt 计算完成: {0}....", X19.CrcSalt[..6]);
+        } else {
+            // CrcSalt 拿不到时，官方（网易）认证会在第一步就抛 CrcSaltNotSet，
+            // 白端/开局都登不进网络服务器，必须显式告警。
+            Log.Warning("未获取到 CrcSalt（服务端 fantnel.json 未下发 crcSalt，且未传入 --crc_salt），官方认证将不可用！");
         }
 
     }
